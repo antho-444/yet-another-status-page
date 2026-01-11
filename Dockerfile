@@ -50,10 +50,11 @@ RUN apk add --no-cache curl
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Create public directory and copy static files if they exist
+RUN mkdir -p ./public/media
 COPY --from=builder /app/public ./public
 
-# Create writable media directory for uploads
-RUN mkdir -p ./public/media
+# Ensure writable media directory for uploads
 RUN chmod 777 ./public/media
 
 # Set the correct permission for prerender cache

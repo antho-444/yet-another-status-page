@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
+import type { Incident } from '@/payload-types'
 import { getIncidentStatus } from '@/collections/Incidents'
 import { getCachedPayload, getSettings } from '@/lib/payload'
 import { Header } from '@/components/status/Header'
@@ -146,12 +147,12 @@ async function getWeekData(dateSlug: string) {
     incidentsByDay.set(formatDate(date), { incidents: [], dateSlug: formatDateSlug(date) })
   }
 
-  incidents.docs.forEach((incident) => {
+  incidents.docs.forEach((incident: Incident) => {
     const createdAt = new Date(incident.createdAt)
     const dateKey = formatDate(createdAt)
 
     if (incidentsByDay.has(dateKey)) {
-      const updates = (incident.updates || []).map((update, index) => ({
+      const updates = (incident.updates || []).map((update: Incident['updates'][number], index: number) => ({
         id: `${incident.id}-update-${index}`,
         status: update.status as 'investigating' | 'identified' | 'monitoring' | 'resolved',
         message: update.message || '',

@@ -38,7 +38,8 @@ next-env.d.ts
 /public/media/
 
 # Generated
-/src/payload-types.ts
+# Payload types are now committed for CI builds
+# /src/payload-types.ts
 
 # Documentation
 docs/book/
