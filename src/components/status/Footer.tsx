@@ -17,7 +17,7 @@ export function Footer({ footerText }: FooterProps) {
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           {hasContent ? (
-            <RichText content={footerText} className="text-sm text-muted-foreground [&_a]:underline [&_a]:hover:text-foreground [&_p]:mb-0" />
+            <RichText content={footerText} className="text-sm text-muted-foreground [&_strong]:font-semibold [&_strong]:text-foreground [&_em]:italic [&_u]:underline [&_s]:line-through [&_a]:text-primary [&_a]:underline [&_a]:hover:text-primary/80 [&_p]:mb-0" />
           ) : null}
           <a
             href="https://github.com/Hostzero-GmbH/status-page"

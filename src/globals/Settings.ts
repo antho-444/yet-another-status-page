@@ -1,5 +1,4 @@
 import type { GlobalConfig } from 'payload'
-import { lexicalEditor, BoldFeature, ItalicFeature, LinkFeature, ParagraphFeature } from '@payloadcms/richtext-lexical'
 
 export const Settings: GlobalConfig = {
   slug: 'settings',
@@ -40,19 +39,9 @@ export const Settings: GlobalConfig = {
               type: 'richText',
               label: 'Footer Text',
               admin: {
-                description: 'Text displayed in the footer. Supports bold, italic, and links. Leave empty for default.',
+                description: 'Text displayed in the footer. Supports bold, italic, underline, and links. Leave empty for default.',
               },
-              editor: lexicalEditor({
-                features: () => [
-                  ParagraphFeature(),
-                  BoldFeature(),
-                  ItalicFeature(),
-                  LinkFeature({
-                    enabledCollections: [],
-                    fields: [],
-                  }),
-                ],
-              }),
+              // Uses global editor config with FixedToolbarFeature
             },
           ],
         },

@@ -172,7 +172,7 @@ export default async function MaintenancePage({ params }: PageProps) {
               </div>
 
               {maintenance.description && typeof maintenance.description === 'object' && (
-                <div className="mt-4 text-sm text-muted-foreground">
+                <div className="mt-4 text-sm text-muted-foreground [&_strong]:font-semibold [&_strong]:text-foreground [&_em]:italic [&_u]:underline [&_s]:line-through [&_a]:text-primary [&_a]:underline [&_a]:hover:text-primary/80">
                   <RichText content={maintenance.description} />
                 </div>
               )}

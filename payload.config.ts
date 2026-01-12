@@ -1,6 +1,6 @@
-import { buildConfig } from 'payload'
+import { buildConfig, Plugin } from 'payload'
 import { postgresAdapter } from '@payloadcms/db-postgres'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { lexicalEditor, FixedToolbarFeature } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -25,8 +25,21 @@ import { sendNotificationFromCollectionHandler } from '@/tasks/sendNotificationF
 // Migrations
 import { migrations } from '@/migrations'
 
+// Optional OIDC/SSO
+import { getOIDCPlugin, isOIDCPartiallyConfigured } from '@/lib/oidc'
+
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+
+// Build plugins array (OIDC is optional)
+const plugins: Plugin[] = []
+const oidcPlugin = getOIDCPlugin()
+if (oidcPlugin) {
+  plugins.push(oidcPlugin)
+  console.log('OIDC SSO enabled')
+} else if (isOIDCPartiallyConfigured()) {
+  console.warn('OIDC configuration incomplete - some OIDC_* env vars are set but not all required ones. SSO disabled.')
+}
 
 export default buildConfig({
   admin: {
@@ -52,7 +65,15 @@ export default buildConfig({
     Media,
   ],
   globals: [Settings],
-  editor: lexicalEditor(),
+  plugins,
+  editor: lexicalEditor({
+    features: ({ defaultFeatures }) => {
+      // Only keep essential formatting features
+      const allowedKeys = ['paragraph', 'bold', 'italic', 'underline', 'strikethrough', 'link']
+      const filtered = defaultFeatures.filter((f) => allowedKeys.includes(f.key))
+      return [...filtered, FixedToolbarFeature()]
+    },
+  }),
   secret: process.env.PAYLOAD_SECRET || 'default-secret-change-me',
   typescript: {
     outputFile: path.resolve(dirname, 'src/payload-types.ts'),

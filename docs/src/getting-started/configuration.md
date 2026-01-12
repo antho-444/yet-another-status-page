@@ -19,6 +19,98 @@ Hostzero Status is configured through environment variables and the admin panel.
 | `PORT` | Server port | `3000` |
 | `NODE_ENV` | Environment mode | `production` |
 
+### SSO/OIDC Authentication (Optional)
+
+Enable Single Sign-On with any OIDC-compliant identity provider (Keycloak, Okta, Auth0, Azure AD, Google).
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OIDC_CLIENT_ID` | OAuth2 client ID | - |
+| `OIDC_CLIENT_SECRET` | OAuth2 client secret | - |
+| `OIDC_AUTH_URL` | Authorization endpoint | - |
+| `OIDC_TOKEN_URL` | Token endpoint | - |
+| `OIDC_USERINFO_URL` | User info endpoint | - |
+| `OIDC_SCOPES` | OAuth scopes | `openid profile email` |
+| `OIDC_AUTO_CREATE` | Create users on first login | `true` |
+| `OIDC_ALLOWED_GROUPS` | Comma-separated list of allowed groups | (allow all) |
+| `OIDC_GROUP_CLAIM` | Claim name containing groups | `groups` |
+| `OIDC_DISABLE_LOCAL_LOGIN` | Disable password login (SSO-only) | `false` |
+
+#### Provider-Specific URLs
+
+**Keycloak:**
+```env
+OIDC_AUTH_URL=https://keycloak.example.com/realms/{realm}/protocol/openid-connect/auth
+OIDC_TOKEN_URL=https://keycloak.example.com/realms/{realm}/protocol/openid-connect/token
+OIDC_USERINFO_URL=https://keycloak.example.com/realms/{realm}/protocol/openid-connect/userinfo
+```
+
+**Okta:**
+```env
+OIDC_AUTH_URL=https://{domain}.okta.com/oauth2/default/v1/authorize
+OIDC_TOKEN_URL=https://{domain}.okta.com/oauth2/default/v1/token
+OIDC_USERINFO_URL=https://{domain}.okta.com/oauth2/default/v1/userinfo
+```
+
+**Auth0:**
+```env
+OIDC_AUTH_URL=https://{tenant}.auth0.com/authorize
+OIDC_TOKEN_URL=https://{tenant}.auth0.com/oauth/token
+OIDC_USERINFO_URL=https://{tenant}.auth0.com/userinfo
+```
+
+**Azure AD:**
+```env
+OIDC_AUTH_URL=https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize
+OIDC_TOKEN_URL=https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
+OIDC_USERINFO_URL=https://graph.microsoft.com/oidc/userinfo
+```
+
+**Google:**
+```env
+OIDC_AUTH_URL=https://accounts.google.com/o/oauth2/v2/auth
+OIDC_TOKEN_URL=https://oauth2.googleapis.com/token
+OIDC_USERINFO_URL=https://openidconnect.googleapis.com/v1/userinfo
+```
+
+#### Callback URL
+
+When configuring your identity provider, set the callback/redirect URL to:
+```
+https://your-status-page.com/api/users/oauth/callback
+```
+
+#### Group-Based Access Control
+
+To restrict access to specific groups from your identity provider:
+
+1. Configure your IdP to include group claims in the userinfo response
+2. Set `OIDC_ALLOWED_GROUPS` to a comma-separated list of allowed groups
+3. If your IdP uses a different claim name, set `OIDC_GROUP_CLAIM`
+
+**Example Keycloak Setup:**
+
+1. Create a client scope named "groups" with a **Group Membership** mapper:
+   - Token Claim Name: `groups`
+   - Add to userinfo: On
+2. Add the scope to your client
+3. Configure the status page:
+
+```env
+OIDC_SCOPES=openid profile email groups
+OIDC_ALLOWED_GROUPS=status-page-admins,status-page-editors
+```
+
+#### SSO-Only Mode
+
+To disable password login and require SSO for all users:
+
+```env
+OIDC_DISABLE_LOCAL_LOGIN=true
+```
+
+> **Warning**: Ensure SSO is working correctly before enabling this option, or you may lock yourself out!
+
 ## Admin Panel Settings
 
 Access **Configuration → Site Settings** in the admin panel to configure:

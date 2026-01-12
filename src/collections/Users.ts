@@ -1,6 +1,10 @@
 import type { CollectionConfig } from 'payload'
+import { isLocalLoginDisabled } from '@/lib/oidc'
 
 const isProduction = process.env.NODE_ENV === 'production'
+
+// Check if password login should be disabled (SSO-only mode)
+const disablePasswordLogin = isLocalLoginDisabled()
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -16,6 +20,13 @@ export const Users: CollectionConfig = {
       secure: isProduction,
       sameSite: 'Lax',
     },
+    // Disable password login when OIDC_DISABLE_LOCAL_LOGIN=true
+    // Keep email field for user identification
+    ...(disablePasswordLogin && {
+      disableLocalStrategy: {
+        enableFields: true,
+      },
+    }),
   },
   access: {
     read: ({ req: { user } }) => !!user,

@@ -136,6 +136,7 @@ export const Maintenances: CollectionConfig = {
       admin: {
         description: 'Detailed description of the maintenance work',
       },
+      // Uses global editor config with FixedToolbarFeature
     },
     {
       name: 'affectedServices',

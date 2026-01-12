@@ -39,7 +39,7 @@ export function MaintenanceCard({ maintenance }: MaintenanceCardProps) {
             ) : (
               <h4 className="font-semibold text-foreground">{maintenance.title}</h4>
             )}
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground [&_strong]:font-semibold [&_strong]:text-foreground [&_em]:italic [&_u]:underline [&_s]:line-through [&_a]:text-primary [&_a]:underline [&_a]:hover:text-primary/80">
               <RichText content={maintenance.description} />
             </div>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">

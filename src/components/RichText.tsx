@@ -2,6 +2,16 @@
 
 import { cn } from "@/lib/utils";
 
+interface LinkFields {
+  url?: string;
+  linkType?: 'custom' | 'internal';
+  newTab?: boolean;
+  doc?: {
+    relationTo?: string;
+    value?: string | number | { id: string | number; [key: string]: unknown };
+  };
+}
+
 interface LexicalNode {
   type: string;
   children?: LexicalNode[];
@@ -11,6 +21,7 @@ interface LexicalNode {
   listType?: string;
   value?: number;
   url?: string;
+  fields?: LinkFields;
 }
 
 interface LexicalRoot {
@@ -36,13 +47,13 @@ function renderTextWithFormat(text: string, format: number = 0): React.ReactNode
     result = <strong className="font-semibold">{result}</strong>;
   }
   if (format & IS_ITALIC) {
-    result = <em>{result}</em>;
+    result = <em className="italic">{result}</em>;
   }
   if (format & IS_UNDERLINE) {
-    result = <u>{result}</u>;
+    result = <u className="underline">{result}</u>;
   }
   if (format & IS_STRIKETHROUGH) {
-    result = <s>{result}</s>;
+    result = <s className="line-through">{result}</s>;
   }
 
   return result;
@@ -115,18 +126,41 @@ function renderNode(node: LexicalNode, index: number): React.ReactNode {
         </blockquote>
       );
 
-    case "link":
+    case "autolink":
+    case "link": {
+      // Payload 3.x Lexical stores link data in fields property
+      const linkFields = node.fields;
+      let href = '#';
+      
+      if (linkFields?.linkType === 'internal' && linkFields?.doc) {
+        // Internal link - build URL from doc reference
+        const docValue = linkFields.doc.value;
+        const docId = typeof docValue === 'object' ? docValue?.id : docValue;
+        href = `/${linkFields.doc.relationTo}/${docId}`;
+      } else if (linkFields?.url) {
+        // External/custom link
+        href = linkFields.url;
+      } else if (node.url) {
+        // Fallback for older format or auto-links
+        href = node.url;
+      }
+      
+      const openInNewTab = linkFields?.newTab ?? false;
+      
       return (
         <a
           key={key}
-          href={node.url || '#'}
+          href={href}
           className="text-primary underline hover:text-primary/80"
-          target="_blank"
-          rel="noopener noreferrer"
+          {...(openInNewTab && {
+            target: "_blank",
+            rel: "noopener noreferrer",
+          })}
         >
           {node.children?.map((child, i) => renderNode(child, i))}
         </a>
       );
+    }
 
     default:
       // For unknown types, try to render children
