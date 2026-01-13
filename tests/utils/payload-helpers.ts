@@ -123,18 +123,26 @@ export async function createIncident(data: {
     createdAt?: string
   }>
   affectedServices?: number[]
+  createdAt?: string
 }): Promise<Incident> {
+  const payload: Record<string, unknown> = {
+    title: data.title,
+    updates: data.updates.map(u => ({
+      ...u,
+      createdAt: u.createdAt || new Date().toISOString(),
+    })),
+    affectedServices: data.affectedServices || [],
+  }
+  
+  // Allow overriding createdAt for testing historical incidents
+  if (data.createdAt) {
+    payload.createdAt = data.createdAt
+  }
+  
   const response = await fetch(`${API_BASE}/api/incidents`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      title: data.title,
-      updates: data.updates.map(u => ({
-        ...u,
-        createdAt: u.createdAt || new Date().toISOString(),
-      })),
-      affectedServices: data.affectedServices || [],
-    }),
+    body: JSON.stringify(payload),
   })
   
   if (!response.ok) {
