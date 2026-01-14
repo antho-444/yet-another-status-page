@@ -54,16 +54,17 @@ if (oidcPlugin) {
   console.warn('OIDC configuration incomplete - some OIDC_* env vars are set but not all required ones. SSO disabled.')
 }
 
-if (process.env.BLOB_READ_WRITE_TOKEN) {
-  plugins.push(
-    vercelBlobStorage({
-      enabled: true,
-      collections: {
-        media: true,
-      },
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-    })
-  )
+const isVercelBlobEnabled = !!process.env.BLOB_READ_WRITE_TOKEN
+plugins.push(
+  vercelBlobStorage({
+    enabled: isVercelBlobEnabled,
+    collections: {
+      media: true,
+    },
+    token: process.env.BLOB_READ_WRITE_TOKEN || 'placeholder',
+  })
+)
+if (isVercelBlobEnabled) {
   console.log('Vercel Blob storage enabled')
 }
 

@@ -11,6 +11,7 @@ import { ParagraphFeatureClient as ParagraphFeatureClient_e70f5e05f09f93e00b997e
 import { SendNotificationCollectionButton as SendNotificationCollectionButton_d01a4935353b96154d106bbf01b3d3d7 } from '@/components/admin/SendNotificationCollectionButton'
 import { RecipientCountField as RecipientCountField_a92dd7a84f1ac5bf2f0c7a2ae42e7fcd } from '@/components/admin/RecipientCountField'
 import { DashboardWidgets as DashboardWidgets_55e8c9f1aba7d352d950aef48719be05 } from '@/components/admin/DashboardWidgets'
+import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e } from '@payloadcms/storage-vercel-blob/client'
 import { CollectionCards as CollectionCards_ab83ff7e88da8d3530831f296ec4756a } from '@payloadcms/ui/rsc'
 
 export const importMap = {
@@ -27,5 +28,6 @@ export const importMap = {
   "@/components/admin/SendNotificationCollectionButton#SendNotificationCollectionButton": SendNotificationCollectionButton_d01a4935353b96154d106bbf01b3d3d7,
   "@/components/admin/RecipientCountField#RecipientCountField": RecipientCountField_a92dd7a84f1ac5bf2f0c7a2ae42e7fcd,
   "@/components/admin/DashboardWidgets#DashboardWidgets": DashboardWidgets_55e8c9f1aba7d352d950aef48719be05,
+  "@payloadcms/storage-vercel-blob/client#VercelBlobClientUploadHandler": VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e,
   "@payloadcms/ui/rsc#CollectionCards": CollectionCards_ab83ff7e88da8d3530831f296ec4756a
 }
