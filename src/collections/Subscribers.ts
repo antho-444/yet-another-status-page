@@ -49,10 +49,37 @@ export const Subscribers: CollectionConfig = {
         description: 'Required if subscription type is email',
         condition: (data) => (data as SubscriberData)?.type === 'email',
       },
-      validate: (value: string | null | undefined, { data }: { data: Partial<SubscriberData> }) => {
+      validate: async (
+        value: string | null | undefined,
+        { data, req, id }: { data: Partial<SubscriberData>; req: { payload?: unknown }; id?: string | number },
+      ) => {
         if (data?.type === 'email' && !value) {
           return 'Email is required for email subscriptions'
         }
+
+        // Check uniqueness for email subscriptions
+        if (value && data?.type === 'email' && req.payload) {
+          const payload = req.payload as {
+            find: (args: {
+              collection: string
+              where: Record<string, unknown>
+              limit: number
+            }) => Promise<{ docs: Array<{ id: string | number }> }>
+          }
+          const existing = await payload.find({
+            collection: 'subscribers',
+            where: {
+              email: { equals: value },
+              type: { equals: 'email' },
+              ...(id ? { id: { not_equals: id } } : {}),
+            },
+            limit: 1,
+          })
+          if (existing.docs.length > 0) {
+            return 'This email address is already subscribed'
+          }
+        }
+
         return true
       },
     },
@@ -64,13 +91,40 @@ export const Subscribers: CollectionConfig = {
         description: 'Required if subscription type is SMS (include country code)',
         condition: (data) => (data as SubscriberData)?.type === 'sms',
       },
-      validate: (value: string | null | undefined, { data }: { data: Partial<SubscriberData> }) => {
+      validate: async (
+        value: string | null | undefined,
+        { data, req, id }: { data: Partial<SubscriberData>; req: { payload?: unknown }; id?: string | number },
+      ) => {
         if (data?.type === 'sms' && !value) {
           return 'Phone number is required for SMS subscriptions'
         }
         if (value && !/^\+?[1-9]\d{6,14}$/.test(value)) {
           return 'Please enter a valid phone number (e.g., +1234567890)'
         }
+
+        // Check uniqueness for SMS subscriptions
+        if (value && data?.type === 'sms' && req.payload) {
+          const payload = req.payload as {
+            find: (args: {
+              collection: string
+              where: Record<string, unknown>
+              limit: number
+            }) => Promise<{ docs: Array<{ id: string | number }> }>
+          }
+          const existing = await payload.find({
+            collection: 'subscribers',
+            where: {
+              phone: { equals: value },
+              type: { equals: 'sms' },
+              ...(id ? { id: { not_equals: id } } : {}),
+            },
+            limit: 1,
+          })
+          if (existing.docs.length > 0) {
+            return 'This phone number is already subscribed'
+          }
+        }
+
         return true
       },
     },
