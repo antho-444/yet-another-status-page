@@ -59,7 +59,7 @@ async function getIncidentData(shortId: string) {
     message: update.message || '',
     timestamp: formatTime(new Date(update.createdAt)),
     date: formatDate(new Date(update.createdAt)),
-  }))
+  })).reverse()
 
   const affectedServices = (incident.affectedServices || []).map((s) => {
     if (typeof s === 'object' && s !== null) {

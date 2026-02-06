@@ -112,9 +112,7 @@ export interface Config {
     'sms-settings': SmsSettingsSelect<false> | SmsSettingsSelect<true>;
   };
   locale: null;
-  user: User & {
-    collection: 'users';
-  };
+  user: User;
   jobs: {
     tasks: {
       sendNotificationFromCollection: TaskSendNotificationFromCollection;
@@ -417,6 +415,7 @@ export interface User {
   loginAttempts?: number | null;
   lockUntil?: string | null;
   password?: string | null;
+  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -894,7 +893,7 @@ export interface Setting {
    */
   historyMetaDescription?: string | null;
   /**
-   * Site favicon (recommended: 32x32 or 64x64 PNG, ICO, or SVG)
+   * Site favicon (recommended: 32x32 or 64x64 PNG, ICO, or SVG). Leave empty to use default favicon.
    */
   favicon?: (number | null) | Media;
   /**

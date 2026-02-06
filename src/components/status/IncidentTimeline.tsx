@@ -86,8 +86,8 @@ export function IncidentTimelineWithLinks({ days }: IncidentTimelineWithLinksPro
 }
 
 function IncidentCard({ incident, linkToDetail = false }: { incident: Incident; linkToDetail?: boolean }) {
-  // Check the last update (most recent) for resolved status
-  const latestUpdate = incident.updates[incident.updates.length - 1];
+  // Check the first update (most recent, since updates are sorted latest-first) for resolved status
+  const latestUpdate = incident.updates[0];
   const isResolved = latestUpdate?.status === "resolved";
 
   const titleElement = linkToDetail && incident.shortId ? (

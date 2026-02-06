@@ -71,7 +71,7 @@ async function getMaintenanceData(shortId: string) {
     status: update.status,
     message: update.message || '',
     dateTime: formatDateTime(new Date(update.createdAt)),
-  }))
+  })).reverse()
 
   const affectedServices = (maintenance.affectedServices || []).map((s) => {
     if (typeof s === 'object' && s !== null) {

@@ -157,7 +157,7 @@ async function getWeekData(dateSlug: string) {
         status: update.status as 'investigating' | 'identified' | 'monitoring' | 'resolved',
         message: update.message || '',
         timestamp: formatTime(new Date(update.createdAt)),
-      }))
+      })).reverse()
 
       incidentsByDay.get(dateKey)!.incidents.push({
         id: String(incident.id),

@@ -172,7 +172,7 @@ async function getStatusData() {
       status: update.status as 'investigating' | 'identified' | 'monitoring' | 'resolved',
       message: update.message || '',
       timestamp: formatTime(new Date(update.createdAt)),
-    })),
+    })).reverse(),
     createdAt: new Date(incident.createdAt),
   }))
 
