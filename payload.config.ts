@@ -31,6 +31,8 @@ import { EmailSettings, Settings, SmsSettings } from '@/globals'
 
 // Tasks
 import { sendNotificationFromCollectionHandler } from '@/tasks/sendNotificationFromCollection'
+import { checkServiceHealthHandler } from '@/tasks/checkServiceHealth'
+import { scheduleMonitoringChecksHandler } from '@/tasks/scheduleMonitoringChecks'
 
 // Migrations
 import { migrations } from '@/migrations'
@@ -130,6 +132,20 @@ export default buildConfig({
           { name: 'itemUrl', type: 'text', required: true },
         ],
         retries: 3,
+      },
+      {
+        slug: 'checkServiceHealth',
+        handler: checkServiceHealthHandler as any,
+        inputSchema: [
+          { name: 'serviceId', type: 'number', required: true },
+        ],
+        retries: 2,
+      },
+      {
+        slug: 'scheduleMonitoringChecks',
+        handler: scheduleMonitoringChecksHandler as any,
+        inputSchema: [],
+        retries: 1,
       },
     ],
   },

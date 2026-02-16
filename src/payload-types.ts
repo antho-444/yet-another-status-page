@@ -116,6 +116,8 @@ export interface Config {
   jobs: {
     tasks: {
       sendNotificationFromCollection: TaskSendNotificationFromCollection;
+      checkServiceHealth: TaskCheckServiceHealth;
+      scheduleMonitoringChecks: TaskScheduleMonitoringChecks;
       inline: {
         input: unknown;
         output: unknown;
@@ -185,6 +187,51 @@ export interface Service {
    * Current status of the service
    */
   status: 'operational' | 'degraded' | 'partial' | 'major' | 'maintenance';
+  /**
+   * Configure automatic monitoring for this service
+   */
+  monitoring?: {
+    /**
+     * When enabled, the service will be automatically checked at the specified interval
+     */
+    enabled?: boolean | null;
+    /**
+     * The URL to monitor (e.g., https://api.example.com/health)
+     */
+    url?: string | null;
+    /**
+     * HTTP method to use for the health check
+     */
+    method?: ('GET' | 'HEAD' | 'POST') | null;
+    /**
+     * How often to check the service (minimum 30 seconds)
+     */
+    interval?: number | null;
+    /**
+     * Request timeout in seconds
+     */
+    timeout?: number | null;
+    /**
+     * The expected HTTP status code for a healthy response (default: 200)
+     */
+    expectedStatusCode?: number | null;
+    /**
+     * Timestamp of the last monitoring check
+     */
+    lastCheckedAt?: string | null;
+    /**
+     * Result of the last monitoring check
+     */
+    lastCheckStatus?: ('success' | 'failed' | 'pending') | null;
+    /**
+     * Number of consecutive failed checks
+     */
+    consecutiveFailures?: number | null;
+    /**
+     * Number of consecutive failures before marking service as down
+     */
+    failureThreshold?: number | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -508,7 +555,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'sendNotificationFromCollection';
+        taskSlug: 'inline' | 'sendNotificationFromCollection' | 'checkServiceHealth' | 'scheduleMonitoringChecks';
         taskID: string;
         input?:
           | {
@@ -541,7 +588,7 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'sendNotificationFromCollection') | null;
+  taskSlug?: ('inline' | 'sendNotificationFromCollection' | 'checkServiceHealth' | 'scheduleMonitoringChecks') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -652,6 +699,20 @@ export interface ServicesSelect<T extends boolean = true> {
   description?: T;
   group?: T;
   status?: T;
+  monitoring?:
+    | T
+    | {
+        enabled?: T;
+        url?: T;
+        method?: T;
+        interval?: T;
+        timeout?: T;
+        expectedStatusCode?: T;
+        lastCheckedAt?: T;
+        lastCheckStatus?: T;
+        consecutiveFailures?: T;
+        failureThreshold?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1086,6 +1147,24 @@ export interface TaskSendNotificationFromCollection {
     itemTitle: string;
     itemUrl: string;
   };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCheckServiceHealth".
+ */
+export interface TaskCheckServiceHealth {
+  input: {
+    serviceId: string;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskScheduleMonitoringChecks".
+ */
+export interface TaskScheduleMonitoringChecks {
+  input?: unknown;
   output?: unknown;
 }
 /**
