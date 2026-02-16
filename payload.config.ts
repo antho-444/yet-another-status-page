@@ -37,6 +37,9 @@ import { scheduleMonitoringChecksHandler } from '@/tasks/scheduleMonitoringCheck
 // Migrations
 import { migrations } from '@/migrations'
 
+// Monitoring Scheduler
+import { startMonitoringScheduler } from '@/lib/monitoringScheduler'
+
 // Optional OIDC/SSO
 import { getOIDCPlugin, isOIDCPartiallyConfigured } from '@/lib/oidc'
 
@@ -148,6 +151,23 @@ export default buildConfig({
         retries: 1,
       },
     ],
+  },
+  onInit: async (payload) => {
+    // Start automatic monitoring scheduler
+    const monitoringSchedule = process.env.MONITORING_SCHEDULE || '* * * * *' // Default: every minute
+    const enableAutoMonitoring = process.env.ENABLE_AUTO_MONITORING !== 'false' // Default: enabled
+    
+    if (enableAutoMonitoring) {
+      console.log('[Payload] Initializing automatic monitoring scheduler...')
+      try {
+        await startMonitoringScheduler(monitoringSchedule)
+        console.log('[Payload] Automatic monitoring scheduler initialized')
+      } catch (error: any) {
+        console.error('[Payload] Failed to start monitoring scheduler:', error.message)
+      }
+    } else {
+      console.log('[Payload] Automatic monitoring scheduler disabled (ENABLE_AUTO_MONITORING=false)')
+    }
   },
   serverURL: getServerUrl(),
 })

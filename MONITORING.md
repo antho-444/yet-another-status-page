@@ -126,11 +126,61 @@ Monitor game servers using the GameDig library, which supports querying game ser
    - **Failure Threshold**: Number of consecutive failures before marking as Major Outage (default 3)
 8. Save the service
 
-### 2. Set Up Periodic Monitoring
+### 2. Automatic Monitoring (Recommended)
 
-The monitoring system needs to be triggered periodically. You can do this in two ways:
+**The application includes built-in automatic monitoring using node-cron** - no external setup required!
 
-#### Option A: Cron Job (Recommended for Production)
+By default, the monitoring system automatically checks all enabled services **every minute**. The scheduler starts when the application launches.
+
+#### Configuration
+
+Control the scheduler with environment variables:
+
+```bash
+# Enable/disable automatic monitoring (default: enabled)
+ENABLE_AUTO_MONITORING=true
+
+# Set the schedule using cron syntax (default: every minute)
+# Examples:
+# - Every minute: * * * * *
+# - Every 5 minutes: */5 * * * *
+# - Every hour: 0 * * * *
+# - Every 30 seconds is not supported by cron syntax
+MONITORING_SCHEDULE="* * * * *"
+```
+
+**Cron Syntax Guide:**
+```
+* * * * *
+│ │ │ │ │
+│ │ │ │ └─── Day of week (0-7, Sunday=0 or 7)
+│ │ │ └───── Month (1-12)
+│ │ └─────── Day of month (1-31)
+│ └───────── Hour (0-23)
+└─────────── Minute (0-59)
+```
+
+**Common Schedules:**
+- `* * * * *` - Every minute (default)
+- `*/2 * * * *` - Every 2 minutes
+- `*/5 * * * *` - Every 5 minutes
+- `*/15 * * * *` - Every 15 minutes
+- `0 * * * *` - Every hour
+- `0 */6 * * *` - Every 6 hours
+
+#### Disable Automatic Monitoring
+
+To disable automatic monitoring and use manual/external triggering:
+
+```bash
+ENABLE_AUTO_MONITORING=false
+```
+
+### 3. Manual Monitoring (Alternative)
+
+If you disable automatic monitoring, you can trigger checks manually:
+
+#### Option A: External Cron Job
 
 Set up a cron job to call the monitoring API endpoint:
 
