@@ -4,19 +4,111 @@ This feature allows you to automatically monitor your services and update their 
 
 ## Prerequisites
 
-- **Database Migration**: This feature requires a database migration to add monitoring fields to the services table. The migration will run automatically when:
+- **Database Migration**: This feature requires database migrations to add monitoring fields to the services table. The migrations will run automatically when:
   - Starting the application for the first time with an existing database
   - Upgrading from a version without monitoring support
   
-  If you encounter database errors related to missing `monitoring_*` columns, ensure the migration `20260216_171400_add_service_monitoring` has been applied.
+  Required migrations:
+  - `20260216_171400_add_service_monitoring` - Base monitoring fields
+  - `20260216_184200_add_monitoring_types` - Multiple monitoring types support
 
 ## Overview
 
-The monitoring system periodically checks configured service endpoints and automatically updates the service status based on the health check results:
+The monitoring system supports **four different monitoring methods**:
+
+1. **HTTP/HTTPS** - Monitor web services and APIs
+2. **TCP Port** - Check if a port is open and accepting connections
+3. **Ping (ICMP)** - Basic reachability testing
+4. **GameDig** - Monitor game servers with player count
+
+The service status is automatically updated based on health check results:
 
 - **Operational**: Service is responding as expected (0 consecutive failures)
 - **Degraded Performance**: Service is failing but below the failure threshold (1-2 consecutive failures by default)
 - **Major Outage**: Service has failed the health check multiple times consecutively (3+ failures by default)
+
+## Monitoring Types
+
+### HTTP/HTTPS Monitoring
+
+Monitor web services, APIs, and health check endpoints.
+
+**Use Cases:**
+- Web applications
+- REST APIs
+- GraphQL endpoints
+- Health check URLs
+
+**Configuration:**
+- **Monitor URL**: The URL to check (e.g., `https://api.example.com/health`)
+- **HTTP Method**: GET, HEAD, or POST (default: GET)
+- **Expected HTTP Status Code**: The status code that indicates the service is healthy (default: 200)
+
+### TCP Port Monitoring
+
+Check if a specific port on a host is open and accepting connections.
+
+**Use Cases:**
+- Database servers (MySQL, PostgreSQL, MongoDB)
+- SSH servers
+- Mail servers (SMTP, IMAP)
+- Any TCP-based service
+
+**Configuration:**
+- **Hostname or IP**: Server address (e.g., `db.example.com` or `192.168.1.100`)
+- **Port Number**: Port to check (e.g., `3306` for MySQL, `22` for SSH)
+
+**Examples:**
+- MySQL: host=`db.example.com`, port=`3306`
+- SSH: host=`server.example.com`, port=`22`
+- PostgreSQL: host=`postgres.example.com`, port=`5432`
+- Redis: host=`cache.example.com`, port=`6379`
+
+### Ping (ICMP) Monitoring
+
+Basic reachability testing using ICMP ping.
+
+**Use Cases:**
+- Check if a server is online
+- Network connectivity testing
+- Simple availability monitoring
+
+**Configuration:**
+- **Hostname or IP**: Server address to ping (e.g., `server.example.com` or `8.8.8.8`)
+
+**Note:** Requires the server running the status page to have ping capabilities. Some cloud providers may restrict ICMP.
+
+### GameDig Monitoring
+
+Monitor game servers using the GameDig library, which supports querying game servers using their native protocols.
+
+**Use Cases:**
+- Minecraft servers
+- Counter-Strike servers
+- Team Fortress 2 servers
+- ARK: Survival Evolved servers
+- Rust servers
+- Any game server supported by GameDig
+
+**Configuration:**
+- **Hostname or IP**: Game server address
+- **Port Number**: Game server port (optional, defaults to game's standard port)
+- **Game Type**: Select from supported games
+
+**Supported Games:**
+- Minecraft
+- Counter-Strike (CS)
+- Team Fortress 2 (TF2)
+- Garry's Mod
+- ARK: Survival Evolved
+- Rust
+- 7 Days to Die
+- Valheim
+
+**Benefits:**
+- Shows current player count
+- Verifies server is online and responding
+- Uses game-specific protocol for accurate results
 
 ## Configuration
 
@@ -26,16 +118,13 @@ The monitoring system periodically checks configured service endpoints and autom
 2. Edit or create a service
 3. Expand the **Monitoring Configuration** section
 4. Enable **"Enable Automatic Monitoring"**
-5. Configure the monitoring settings:
-
-   - **Monitor URL**: The URL to check (e.g., `https://api.example.com/health`)
-   - **HTTP Method**: GET, HEAD, or POST (default: GET)
+5. Select **Monitoring Type** (HTTP/HTTPS, TCP Port, Ping, or GameDig)
+6. Configure type-specific settings (URL, host, port, etc.)
+7. Configure common settings:
    - **Check Interval**: How often to check in seconds (minimum 30 seconds, default 60)
    - **Timeout**: Request timeout in seconds (default 10)
-   - **Expected HTTP Status Code**: The status code that indicates the service is healthy (default 200)
    - **Failure Threshold**: Number of consecutive failures before marking as Major Outage (default 3)
-
-6. Save the service
+8. Save the service
 
 ### 2. Set Up Periodic Monitoring
 
@@ -109,11 +198,14 @@ This endpoint immediately executes a health check for a specific service. The he
 When a monitoring check is triggered:
 
 1. The system fetches the service configuration
-2. Makes an HTTP request to the configured URL
-3. Checks if the response status code matches the expected value
-4. Records the result and response time
-5. Updates the consecutive failure count
-6. Determines the appropriate service status based on the failure threshold
+2. Performs the appropriate check based on monitoring type:
+   - **HTTP**: Makes an HTTP request and checks status code
+   - **TCP**: Attempts to connect to the specified port
+   - **Ping**: Sends ICMP ping packets
+   - **GameDig**: Queries game server using native protocol
+3. Records the result and response time
+4. Updates the consecutive failure count
+5. Determines the appropriate service status based on the failure threshold
 
 ### 2. Status Updates
 
@@ -196,12 +288,13 @@ Shorter intervals provide faster detection but generate more load on your servic
 - Set the monitor URL to the final destination
 - Adjust your endpoint to return a non-redirect status code
 
-## Example Setup
+## Example Setups
 
-### Setup for a Web API
+### HTTP/HTTPS Examples
 
+#### Web API
 ```
-Service: API Gateway
+Monitoring Type: HTTP/HTTPS
 Monitor URL: https://api.example.com/health
 HTTP Method: GET
 Check Interval: 60 seconds
@@ -210,10 +303,9 @@ Expected Status Code: 200
 Failure Threshold: 3
 ```
 
-### Setup for a Website
-
+#### Website
 ```
-Service: Main Website
+Monitoring Type: HTTP/HTTPS
 Monitor URL: https://www.example.com/
 HTTP Method: HEAD
 Check Interval: 120 seconds
@@ -222,16 +314,91 @@ Expected Status Code: 200
 Failure Threshold: 2
 ```
 
-### Setup for a Database Service (via Health Check)
+### TCP Port Examples
 
+#### MySQL Database
 ```
-Service: PostgreSQL Database
-Monitor URL: https://api.example.com/health/database
-HTTP Method: GET
-Check Interval: 180 seconds
+Monitoring Type: TCP Port
+Hostname or IP: db.example.com
+Port Number: 3306
+Check Interval: 60 seconds
 Timeout: 10 seconds
-Expected Status Code: 200
 Failure Threshold: 3
+```
+
+#### SSH Server
+```
+Monitoring Type: TCP Port
+Hostname or IP: server.example.com
+Port Number: 22
+Check Interval: 300 seconds
+Timeout: 10 seconds
+Failure Threshold: 3
+```
+
+#### Redis Cache
+```
+Monitoring Type: TCP Port
+Hostname or IP: cache.example.com
+Port Number: 6379
+Check Interval: 60 seconds
+Timeout: 5 seconds
+Failure Threshold: 2
+```
+
+### Ping Examples
+
+#### Server Reachability
+```
+Monitoring Type: Ping (ICMP)
+Hostname or IP: server.example.com
+Check Interval: 60 seconds
+Timeout: 10 seconds
+Failure Threshold: 3
+```
+
+#### Network Gateway
+```
+Monitoring Type: Ping (ICMP)
+Hostname or IP: 192.168.1.1
+Check Interval: 30 seconds
+Timeout: 5 seconds
+Failure Threshold: 5
+```
+
+### GameDig Examples
+
+#### Minecraft Server
+```
+Monitoring Type: Game Server (GameDig)
+Hostname or IP: mc.example.com
+Port Number: 25565 (optional, uses default)
+Game Type: Minecraft
+Check Interval: 120 seconds
+Timeout: 10 seconds
+Failure Threshold: 2
+```
+
+#### Rust Server
+```
+Monitoring Type: Game Server (GameDig)
+Hostname or IP: rust.example.com
+Port Number: 28015
+Game Type: Rust
+Check Interval: 180 seconds
+Timeout: 15 seconds
+Failure Threshold: 3
+```
+
+#### Counter-Strike Server
+```
+Monitoring Type: Game Server (GameDig)
+Hostname or IP: cs.example.com
+Port Number: 27015
+Game Type: Counter-Strike
+Check Interval: 120 seconds
+Timeout: 10 seconds
+Failure Threshold: 2
 ```
 
 ## Troubleshooting
@@ -301,10 +468,58 @@ The monitoring API endpoints can be called without authentication. If you need t
 
 ## Limitations
 
+### General
 - Minimum check interval is 30 seconds
-- Only HTTP/HTTPS endpoints are supported
-- No support for custom headers or authentication in health checks (can be added if needed)
 - Status updates are automatic - manual status changes will be overwritten on next check
+- No support for custom headers or authentication in HTTP health checks (can be added if needed)
+
+### Monitoring Type Specific
+
+**HTTP/HTTPS:**
+- Does not follow redirects (3xx responses considered failures)
+- No response body validation (only status code)
+
+**TCP:**
+- Only checks if port is open, not if service is healthy
+- Cannot verify application-level functionality
+
+**Ping:**
+- Requires ICMP to be allowed on the network
+- Some cloud providers block ICMP
+- Server running status page needs ping command available
+- May not work in Docker without proper network configuration
+
+**GameDig:**
+- Requires `gamedig` npm package to be installed
+- Only supports games in the GameDig library
+- Some game servers may have query disabled
+- Port detection may not work for all games (manual port configuration recommended)
+
+## Dependencies
+
+### GameDig Package
+
+GameDig monitoring requires the `gamedig` npm package:
+
+```bash
+npm install gamedig
+npm install --save-dev @types/gamedig
+```
+
+This is automatically installed when you build the application. If GameDig is not available, services configured with GameDig monitoring will fail with a helpful error message.
+
+**Supported Game Servers:**
+GameDig supports 200+ game protocols. The status page includes these popular options:
+- Minecraft (Java & Bedrock)
+- Counter-Strike (CS, CS:GO, CS2)
+- Team Fortress 2
+- Garry's Mod
+- ARK: Survival Evolved
+- Rust
+- 7 Days to Die
+- Valheim
+
+For a complete list of supported games, see: https://github.com/gamedig/node-gamedig
 
 ## Future Enhancements
 
@@ -315,5 +530,7 @@ Potential improvements for the monitoring system:
 - Response body validation (check for specific content)
 - Alerting integration (send notifications when status changes)
 - Monitoring dashboard with historical data
-- Support for other protocols (TCP, ping, DNS)
+- DNS monitoring
+- Certificate expiration monitoring
 - Configurable status transitions (custom status per failure count)
+- More game types for GameDig
