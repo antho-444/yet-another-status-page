@@ -476,8 +476,10 @@ The monitoring API endpoints can be called without authentication. If you need t
 ### Monitoring Type Specific
 
 **HTTP/HTTPS:**
-- Does not follow redirects (3xx responses considered failures)
+- Follows redirects automatically (e.g., http://google.com → https://www.google.com)
+- Redirect following limited by fetch API (typically 20 redirects max)
 - No response body validation (only status code)
+- Final destination URL after redirects is checked
 
 **TCP:**
 - Only checks if port is open, not if service is healthy

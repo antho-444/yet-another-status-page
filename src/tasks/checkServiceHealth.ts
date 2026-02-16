@@ -21,10 +21,16 @@ export async function checkServiceHealthHandler({ input, req }: TaskHandlerArgs)
   const { payload } = req
   const { serviceId } = input
 
+  console.log(`\n====================================================================`)
+  console.log(`[Task] Health Check Handler - Service ID: ${serviceId}`)
+  console.log(`[Task] Timestamp: ${new Date().toISOString()}`)
+  console.log(`====================================================================\n`)
+
   try {
     // Convert serviceId string to number
     const serviceIdNum = parseInt(serviceId, 10)
     if (isNaN(serviceIdNum)) {
+      console.error(`[Task] Invalid serviceId: ${serviceId}`)
       return {
         output: {
           success: false,
@@ -34,13 +40,17 @@ export async function checkServiceHealthHandler({ input, req }: TaskHandlerArgs)
     }
 
     // Fetch the service
+    console.log(`[Task] Fetching service ${serviceIdNum} from database...`)
     const service = await payload.findByID({
       collection: 'services',
       id: serviceIdNum,
     }) as Service
 
+    console.log(`[Task] Service found: ${service.name}`)
+
     // Check if monitoring is enabled
     if (!service.monitoring?.enabled) {
+      console.warn(`[Task] Monitoring is not enabled for service: ${service.name}`)
       return {
         output: {
           success: false,
@@ -114,21 +124,31 @@ export async function checkServiceHealthHandler({ input, req }: TaskHandlerArgs)
       checkConfig.gameType = service.monitoring.gameType
     }
 
+    console.log(`[Task] Built monitoring config:`, JSON.stringify(checkConfig, null, 2))
+
     // Perform health check
     const checkResult = await performHealthCheck(checkConfig)
+
+    console.log(`[Task] Health check result:`, JSON.stringify(checkResult, null, 2))
 
     // Update consecutive failures
     const previousFailures = service.monitoring.consecutiveFailures || 0
     const newFailures = checkResult.success ? 0 : previousFailures + 1
 
+    console.log(`[Task] Previous failures: ${previousFailures}, New failures: ${newFailures}`)
+
     // Determine new service status
     const failureThreshold = service.monitoring.failureThreshold || 3
     const newStatus = determineServiceStatus(newFailures, failureThreshold)
+
+    console.log(`[Task] Current status: ${service.status}, New status: ${newStatus}`)
 
     // Only update status if it changed and we have enough failures
     const shouldUpdateStatus = 
       service.status !== newStatus && 
       (checkResult.success || newFailures >= failureThreshold)
+
+    console.log(`[Task] Should update status: ${shouldUpdateStatus}`)
 
     // Update service with check results
     const updateData: any = {
@@ -143,13 +163,22 @@ export async function checkServiceHealthHandler({ input, req }: TaskHandlerArgs)
     // Update status if needed
     if (shouldUpdateStatus) {
       updateData.status = newStatus
+      console.log(`[Task] Updating service status from ${service.status} to ${newStatus}`)
     }
 
+    console.log(`[Task] Updating service in database...`)
     await payload.update({
       collection: 'services',
       id: serviceIdNum,
       data: updateData,
     })
+
+    console.log(`[Task] Service updated successfully`)
+    console.log(`\n====================================================================`)
+    console.log(`[Task] Health Check Complete`)
+    console.log(`[Task] Result: ${checkResult.success ? 'SUCCESS' : 'FAILURE'}`)
+    console.log(`[Task] Status: ${shouldUpdateStatus ? `Changed to ${newStatus}` : `Unchanged (${service.status})`}`)
+    console.log(`====================================================================\n`)
 
     return {
       output: {

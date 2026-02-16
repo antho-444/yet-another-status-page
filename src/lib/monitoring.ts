@@ -40,21 +40,43 @@ export interface MonitoringConfig {
 export async function performHealthCheck(
   config: MonitoringConfig
 ): Promise<MonitoringCheckResult> {
+  console.log(`[Monitor] ========================================`)
+  console.log(`[Monitor] Starting ${config.type} health check`)
+  console.log(`[Monitor] ========================================`)
+  
+  let result: MonitoringCheckResult
+  
   switch (config.type) {
     case 'http':
-      return performHttpCheck(config)
+      result = await performHttpCheck(config)
+      break
     case 'tcp':
-      return performTcpCheck(config)
+      result = await performTcpCheck(config)
+      break
     case 'ping':
-      return performPingCheck(config)
+      result = await performPingCheck(config)
+      break
     case 'gamedig':
-      return performGameDigCheck(config)
+      result = await performGameDigCheck(config)
+      break
     default:
-      return {
+      result = {
         success: false,
         error: `Unknown monitoring type: ${config.type}`,
       }
   }
+  
+  console.log(`[Monitor] ========================================`)
+  console.log(`[Monitor] Check complete: ${result.success ? 'SUCCESS' : 'FAILURE'}`)
+  if (result.error) {
+    console.log(`[Monitor] Error: ${result.error}`)
+  }
+  if (result.responseTime) {
+    console.log(`[Monitor] Response time: ${result.responseTime}ms`)
+  }
+  console.log(`[Monitor] ========================================`)
+  
+  return result
 }
 
 /**
@@ -79,10 +101,15 @@ async function performHttpCheck(
 
   const startTime = Date.now()
 
+  // Debug logging
+  console.log(`[HTTP Monitor] Starting check for ${url}`)
+  console.log(`[HTTP Monitor] Method: ${method}, Expected: ${expectedStatusCode}, Timeout: ${timeout}ms`)
+
   try {
     // Validate URL
     const parsedUrl = new URL(url)
     if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      console.error(`[HTTP Monitor] Invalid protocol: ${parsedUrl.protocol}`)
       return {
         success: false,
         error: 'Invalid URL protocol. Only HTTP and HTTPS are supported.',
@@ -94,11 +121,13 @@ async function performHttpCheck(
     const timeoutId = setTimeout(() => controller.abort(), timeout)
 
     try {
+      console.log(`[HTTP Monitor] Fetching ${url}...`)
       const response = await fetch(url, {
         method,
         signal: controller.signal,
-        // Don't follow redirects - check the actual response
-        redirect: 'manual',
+        // Follow redirects by default (most URLs redirect http -> https)
+        // This allows monitoring sites like google.com that redirect to https://www.google.com
+        redirect: 'follow',
         headers: {
           'User-Agent': 'Yet-Another-Status-Page-Monitor/1.0',
         },
@@ -107,19 +136,31 @@ async function performHttpCheck(
       clearTimeout(timeoutId)
       const responseTime = Date.now() - startTime
 
+      console.log(`[HTTP Monitor] Response: ${response.status} ${response.statusText}`)
+      console.log(`[HTTP Monitor] Response time: ${responseTime}ms`)
+      console.log(`[HTTP Monitor] Final URL: ${response.url}`)
+
       // Check if status code matches expected
       const success = response.status === expectedStatusCode
 
-      return {
+      const result = {
         success,
         statusCode: response.status,
         responseTime,
         error: success ? undefined : `Expected status ${expectedStatusCode}, got ${response.status}`,
       }
+
+      console.log(`[HTTP Monitor] Result: ${success ? 'SUCCESS' : 'FAILURE'}`)
+      if (!success) {
+        console.error(`[HTTP Monitor] Error: ${result.error}`)
+      }
+
+      return result
     } catch (error: any) {
       clearTimeout(timeoutId)
 
       if (error.name === 'AbortError') {
+        console.error(`[HTTP Monitor] Request timeout after ${timeout}ms`)
         return {
           success: false,
           responseTime: Date.now() - startTime,
@@ -130,6 +171,7 @@ async function performHttpCheck(
       throw error
     }
   } catch (error: any) {
+    console.error(`[HTTP Monitor] Exception: ${error.message}`)
     return {
       success: false,
       responseTime: Date.now() - startTime,
@@ -155,6 +197,10 @@ async function performTcpCheck(
 
   const startTime = Date.now()
 
+  // Debug logging
+  console.log(`[TCP Monitor] Starting check for ${host}:${port}`)
+  console.log(`[TCP Monitor] Timeout: ${timeout}ms`)
+
   return new Promise((resolve) => {
     const socket = new net.Socket()
     let connected = false
@@ -162,6 +208,7 @@ async function performTcpCheck(
     const timeoutId = setTimeout(() => {
       if (!connected) {
         socket.destroy()
+        console.error(`[TCP Monitor] Connection timeout after ${timeout}ms`)
         resolve({
           success: false,
           responseTime: Date.now() - startTime,
@@ -174,9 +221,12 @@ async function performTcpCheck(
       connected = true
       clearTimeout(timeoutId)
       socket.destroy()
+      const responseTime = Date.now() - startTime
+      console.log(`[TCP Monitor] Connection successful to ${host}:${port}`)
+      console.log(`[TCP Monitor] Response time: ${responseTime}ms`)
       resolve({
         success: true,
-        responseTime: Date.now() - startTime,
+        responseTime,
         details: `TCP port ${port} is open`,
       })
     })
@@ -185,6 +235,7 @@ async function performTcpCheck(
       connected = true
       clearTimeout(timeoutId)
       socket.destroy()
+      console.error(`[TCP Monitor] Connection failed to ${host}:${port}: ${error.message}`)
       resolve({
         success: false,
         responseTime: Date.now() - startTime,
@@ -211,11 +262,16 @@ async function performPingCheck(
 
   const startTime = Date.now()
 
+  // Debug logging
+  console.log(`[Ping Monitor] Starting check for ${host}`)
+  console.log(`[Ping Monitor] Timeout: ${timeout}ms`)
+
   try {
     // Use system ping command
     // -c 1: send 1 packet
     // -W: timeout in seconds
     const timeoutSec = Math.ceil(timeout / 1000)
+    console.log(`[Ping Monitor] Executing: ping -c 1 -W ${timeoutSec} ${host}`)
     const { stdout, stderr } = await execAsync(
       `ping -c 1 -W ${timeoutSec} ${host}`,
       { timeout }
@@ -223,18 +279,25 @@ async function performPingCheck(
 
     const responseTime = Date.now() - startTime
 
+    console.log(`[Ping Monitor] Stdout: ${stdout.substring(0, 200)}`)
+    if (stderr) {
+      console.log(`[Ping Monitor] Stderr: ${stderr}`)
+    }
+
     // Check if ping was successful
     if (stdout.includes('1 received') || stdout.includes('1 packets received')) {
       // Extract time from ping output
       const timeMatch = stdout.match(/time[=:]?\s*([0-9.]+)\s*ms/i)
       const pingTime = timeMatch ? parseFloat(timeMatch[1]) : responseTime
 
+      console.log(`[Ping Monitor] Ping successful, time: ${pingTime}ms`)
       return {
         success: true,
         responseTime: pingTime,
         details: `Host is reachable`,
       }
     } else {
+      console.error(`[Ping Monitor] Host unreachable`)
       return {
         success: false,
         responseTime,
@@ -242,6 +305,7 @@ async function performPingCheck(
       }
     }
   } catch (error: any) {
+    console.error(`[Ping Monitor] Exception: ${error.message}`)
     return {
       success: false,
       responseTime: Date.now() - startTime,
@@ -267,10 +331,15 @@ async function performGameDigCheck(
 
   const startTime = Date.now()
 
+  // Debug logging
+  console.log(`[GameDig Monitor] Starting check for ${host}:${port} (${gameType})`)
+  console.log(`[GameDig Monitor] Timeout: ${timeout}ms`)
+
   try {
     // Dynamically import gamedig only when needed
     const { GameDig } = await import('gamedig')
     
+    console.log(`[GameDig Monitor] Querying game server...`)
     const state = await GameDig.query({
       type: gameType,
       host: host,
@@ -281,6 +350,11 @@ async function performGameDigCheck(
 
     const responseTime = Date.now() - startTime
 
+    console.log(`[GameDig Monitor] Server: ${state.name}`)
+    console.log(`[GameDig Monitor] Players: ${state.players?.length || 0}/${state.maxplayers || 0}`)
+    console.log(`[GameDig Monitor] Map: ${state.map}`)
+    console.log(`[GameDig Monitor] Response time: ${responseTime}ms`)
+
     return {
       success: true,
       responseTime,
@@ -289,6 +363,7 @@ async function performGameDigCheck(
   } catch (error: any) {
     // If gamedig is not installed, provide a helpful error
     if (error.code === 'MODULE_NOT_FOUND') {
+      console.error(`[GameDig Monitor] GameDig module not installed`)
       return {
         success: false,
         responseTime: Date.now() - startTime,
@@ -296,6 +371,7 @@ async function performGameDigCheck(
       }
     }
 
+    console.error(`[GameDig Monitor] Query failed: ${error.message}`)
     return {
       success: false,
       responseTime: Date.now() - startTime,
