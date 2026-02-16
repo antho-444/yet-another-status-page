@@ -2,6 +2,14 @@
 
 This feature allows you to automatically monitor your services and update their status based on health check results.
 
+## Prerequisites
+
+- **Database Migration**: This feature requires a database migration to add monitoring fields to the services table. The migration will run automatically when:
+  - Starting the application for the first time with an existing database
+  - Upgrading from a version without monitoring support
+  
+  If you encounter database errors related to missing `monitoring_*` columns, ensure the migration `20260216_171400_add_service_monitoring` has been applied.
+
 ## Overview
 
 The monitoring system periodically checks configured service endpoints and automatically updates the service status based on the health check results:
@@ -222,6 +230,21 @@ Failure Threshold: 3
 ```
 
 ## Troubleshooting
+
+### Database Migration Issues
+
+If you see errors about missing columns like `monitoring_enabled`, `monitoring_url`, etc.:
+
+1. **Check Migration Status**: Ensure the database migration has been applied
+   - The migration `20260216_171400_add_service_monitoring` adds the monitoring fields
+   - Migrations run automatically when the application starts
+
+2. **Manual Migration** (if needed):
+   - Restart the application to trigger pending migrations
+   - Check application logs for migration errors
+   - Verify database connection and permissions
+
+3. **Fresh Installation**: For new installations, all migrations run automatically during first startup
 
 ### Monitoring Not Running
 
