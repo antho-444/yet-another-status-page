@@ -1,0 +1,34 @@
+# Docker Compose Example: Adding Automated Monitoring
+#
+# This example shows how to add a simple cron service to your existing
+# docker-compose.yml to automatically trigger monitoring checks.
+#
+# Add this service to your docker-compose.yml:
+
+services:
+  # Your existing services (app, database, etc.)
+  # ...
+
+  # Monitoring Cron Service
+  monitoring-cron:
+    image: alpine:latest
+    container_name: status-page-monitoring
+    restart: unless-stopped
+    depends_on:
+      - app
+    command: >
+      sh -c "
+        echo 'Installing curl...' &&
+        apk add --no-cache curl &&
+        echo 'Setting up cron job...' &&
+        echo '* * * * * curl -s http://app:3000/api/monitoring/check || echo Failed to trigger monitoring' > /etc/crontabs/root &&
+        echo 'Starting cron daemon...' &&
+        crond -f -l 2
+      "
+    networks:
+      - status-page
+
+# Make sure your app service is on the same network
+# networks:
+#   status-page:
+#     driver: bridge

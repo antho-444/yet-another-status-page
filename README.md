@@ -14,6 +14,7 @@ A modern, self-hosted status page built with [Payload CMS](https://payloadcms.co
 
 - **Incident Management** — Track and communicate service disruptions with timeline updates
 - **Scheduled Maintenance** — Plan and notify users about upcoming maintenance windows
+- **Automatic Monitoring** — Monitor service health and automatically update status when services go down
 - **Email & SMS Notifications** — Automatic subscriber notifications via SMTP and Twilio
 - **Service Groups** — Organize services into logical groups
 - **Beautiful UI** — Modern, responsive status page with dark mode support
@@ -42,6 +43,7 @@ Visit:
 
 - [Installation Guide](https://hostzero-gmbh.github.io/yet-another-status-page/getting-started/installation/)
 - [Configuration](https://hostzero-gmbh.github.io/yet-another-status-page/getting-started/configuration/)
+- [Automatic Monitoring Setup](MONITORING.md) — Configure automatic health checks
 - [Admin Guide](https://hostzero-gmbh.github.io/yet-another-status-page/admin/overview/)
 - [API Reference](https://hostzero-gmbh.github.io/yet-another-status-page/api/rest/)
 - [Local Development](https://hostzero-gmbh.github.io/yet-another-status-page/development/local-setup/)

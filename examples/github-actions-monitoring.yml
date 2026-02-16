@@ -1,0 +1,50 @@
+# Example GitHub Actions Workflow for Automated Monitoring
+#
+# This workflow triggers monitoring checks for your status page
+# on a scheduled basis using GitHub Actions.
+#
+# To use this:
+# 1. Create .github/workflows/monitoring.yml in your status page repository
+# 2. Update the STATUS_PAGE_URL to your actual status page URL
+# 3. Commit and push
+
+name: Automated Monitoring
+
+on:
+  schedule:
+    # Run every minute (GitHub Actions minimum is every 5 minutes, but you can adjust)
+    # Cron format: minute hour day month day-of-week
+    - cron: '*/5 * * * *'  # Every 5 minutes
+  
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  trigger-monitoring:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Monitoring Checks
+        run: |
+          STATUS_PAGE_URL="https://status.example.com"  # UPDATE THIS
+          
+          echo "Triggering monitoring checks for $STATUS_PAGE_URL"
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" "$STATUS_PAGE_URL/api/monitoring/check")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "✓ Monitoring checks triggered successfully"
+            echo "$BODY"
+          else
+            echo "✗ Failed to trigger monitoring checks (HTTP $HTTP_CODE)"
+            echo "$BODY"
+            exit 1
+          fi
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "Monitoring trigger failed. Check your status page configuration."
+          # You can add notification logic here (Slack, Discord, email, etc.)
