@@ -50,22 +50,72 @@ export async function checkServiceHealthHandler({ input, req }: TaskHandlerArgs)
     }
 
     // Validate monitoring configuration
-    if (!service.monitoring.url) {
+    if (!service.monitoring.url && !service.monitoring.host) {
       return {
         output: {
           success: false,
-          message: 'No monitoring URL configured',
+          message: 'No monitoring URL or host configured',
         },
       }
     }
 
-    // Perform health check
-    const checkResult = await performHealthCheck({
-      url: service.monitoring.url,
-      method: service.monitoring.method as 'GET' | 'HEAD' | 'POST' | undefined,
+    // Build monitoring config based on type
+    const monitoringType = service.monitoring.type || 'http'
+    const checkConfig: any = {
+      type: monitoringType,
       timeout: (service.monitoring.timeout || 10) * 1000, // Convert to milliseconds
-      expectedStatusCode: service.monitoring.expectedStatusCode || 200,
-    })
+    }
+
+    // Add type-specific configuration
+    if (monitoringType === 'http') {
+      if (!service.monitoring.url) {
+        return {
+          output: {
+            success: false,
+            message: 'No monitoring URL configured for HTTP monitoring',
+          },
+        }
+      }
+      checkConfig.url = service.monitoring.url
+      checkConfig.method = service.monitoring.method || 'GET'
+      checkConfig.expectedStatusCode = service.monitoring.expectedStatusCode || 200
+    } else if (monitoringType === 'tcp') {
+      if (!service.monitoring.host || !service.monitoring.port) {
+        return {
+          output: {
+            success: false,
+            message: 'Host and port are required for TCP monitoring',
+          },
+        }
+      }
+      checkConfig.host = service.monitoring.host
+      checkConfig.port = service.monitoring.port
+    } else if (monitoringType === 'ping') {
+      if (!service.monitoring.host) {
+        return {
+          output: {
+            success: false,
+            message: 'Host is required for Ping monitoring',
+          },
+        }
+      }
+      checkConfig.host = service.monitoring.host
+    } else if (monitoringType === 'gamedig') {
+      if (!service.monitoring.host || !service.monitoring.gameType) {
+        return {
+          output: {
+            success: false,
+            message: 'Host and game type are required for GameDig monitoring',
+          },
+        }
+      }
+      checkConfig.host = service.monitoring.host
+      checkConfig.port = service.monitoring.port
+      checkConfig.gameType = service.monitoring.gameType
+    }
+
+    // Perform health check
+    const checkResult = await performHealthCheck(checkConfig)
 
     // Update consecutive failures
     const previousFailures = service.monitoring.consecutiveFailures || 0

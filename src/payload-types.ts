@@ -196,6 +196,10 @@ export interface Service {
      */
     enabled?: boolean | null;
     /**
+     * Type of monitoring to perform
+     */
+    type?: ('http' | 'tcp' | 'ping' | 'gamedig') | null;
+    /**
      * The URL to monitor (e.g., https://api.example.com/health)
      */
     url?: string | null;
@@ -203,6 +207,18 @@ export interface Service {
      * HTTP method to use for the health check
      */
     method?: ('GET' | 'HEAD' | 'POST') | null;
+    /**
+     * Hostname or IP address to monitor (e.g., example.com or 192.168.1.1)
+     */
+    host?: string | null;
+    /**
+     * Port number to check (e.g., 22 for SSH, 3306 for MySQL)
+     */
+    port?: number | null;
+    /**
+     * Type of game server
+     */
+    gameType?: ('minecraft' | 'cs' | 'tf2' | 'garrysmod' | 'arkse' | 'rust' | '7d2d' | 'valheim') | null;
     /**
      * How often to check the service (minimum 30 seconds)
      */
@@ -703,8 +719,12 @@ export interface ServicesSelect<T extends boolean = true> {
     | T
     | {
         enabled?: T;
+        type?: T;
         url?: T;
         method?: T;
+        host?: T;
+        port?: T;
+        gameType?: T;
         interval?: T;
         timeout?: T;
         expectedStatusCode?: T;
