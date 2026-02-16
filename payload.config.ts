@@ -160,7 +160,8 @@ export default buildConfig({
     if (enableAutoMonitoring) {
       console.log('[Payload] Initializing automatic monitoring scheduler...')
       try {
-        await startMonitoringScheduler(monitoringSchedule)
+        // Pass payload instance to avoid circular dependency
+        await startMonitoringScheduler(monitoringSchedule, payload)
         console.log('[Payload] Automatic monitoring scheduler initialized')
       } catch (error: any) {
         console.error('[Payload] Failed to start monitoring scheduler:', error.message)

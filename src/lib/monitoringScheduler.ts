@@ -4,7 +4,7 @@
  */
 
 import cron, { ScheduledTask } from 'node-cron'
-import { getPayload } from 'payload'
+import { getPayload, Payload } from 'payload'
 import config from '@payload-config'
 
 let monitoringTask: ScheduledTask | null = null
@@ -13,9 +13,10 @@ let currentSchedule: string = '* * * * *'
 /**
  * Get schedule from database settings or environment variable
  */
-async function getScheduleFromSettings(): Promise<{ enabled: boolean; schedule: string }> {
+async function getScheduleFromSettings(payloadInstance?: Payload): Promise<{ enabled: boolean; schedule: string }> {
   try {
-    const payload = await getPayload({ config })
+    // Use provided instance or get new one (for restart scenarios)
+    const payload = payloadInstance || await getPayload({ config })
     const settings = await payload.findGlobal({ slug: 'settings' })
     
     if (settings) {
@@ -36,15 +37,16 @@ async function getScheduleFromSettings(): Promise<{ enabled: boolean; schedule: 
 /**
  * Start the automatic monitoring scheduler
  * @param schedule Cron schedule (optional, will be read from settings if not provided)
+ * @param payloadInstance Optional Payload instance (avoids circular dependency during onInit)
  */
-export async function startMonitoringScheduler(schedule?: string) {
+export async function startMonitoringScheduler(schedule?: string, payloadInstance?: Payload) {
   if (monitoringTask) {
     console.log('[Monitoring Scheduler] Already running')
     return
   }
 
   // Get schedule from settings or use provided/default
-  const { enabled, schedule: dbSchedule } = await getScheduleFromSettings()
+  const { enabled, schedule: dbSchedule } = await getScheduleFromSettings(payloadInstance)
   const finalSchedule = schedule || dbSchedule
   
   if (!enabled) {
