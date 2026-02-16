@@ -42,8 +42,11 @@ export async function POST(request: Request) {
       },
     })
 
+    // Run the job immediately
+    await payload.jobs.run()
+
     return NextResponse.json({
-      message: 'Health check queued successfully',
+      message: 'Health check completed',
       serviceId,
       serviceName: service.name,
     })
@@ -70,8 +73,11 @@ export async function GET() {
       input: {},
     })
 
+    // Run the job immediately to process all queued checks
+    await payload.jobs.run()
+
     return NextResponse.json({
-      message: 'Monitoring checks scheduled successfully',
+      message: 'Monitoring checks completed',
       jobId: job.id,
     })
   } catch (error: any) {
