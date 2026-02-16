@@ -137,7 +137,7 @@ export default buildConfig({
         slug: 'checkServiceHealth',
         handler: checkServiceHealthHandler as any,
         inputSchema: [
-          { name: 'serviceId', type: 'number', required: true },
+          { name: 'serviceId', type: 'text', required: true }, // Must be text, converted to number in handler
         ],
         retries: 2,
       },

@@ -52,7 +52,8 @@ export async function performHealthCheck(
       const response = await fetch(url, {
         method,
         signal: controller.signal,
-        // Don't follow redirects automatically, check the actual response
+        // Don't follow redirects - check the actual response
+        // If your health check endpoint returns 3xx redirects, you may need to adjust this
         redirect: 'manual',
         headers: {
           'User-Agent': 'Yet-Another-Status-Page-Monitor/1.0',

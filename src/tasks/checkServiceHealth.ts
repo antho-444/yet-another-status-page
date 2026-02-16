@@ -3,7 +3,7 @@ import { performHealthCheck, determineServiceStatus } from '@/lib/monitoring'
 import type { Service } from '@/payload-types'
 
 export interface CheckServiceHealthInput {
-  serviceId: number
+  serviceId: string // Payload job inputs are always strings, convert to number internally
 }
 
 interface TaskHandlerArgs {
@@ -22,10 +22,21 @@ export async function checkServiceHealthHandler({ input, req }: TaskHandlerArgs)
   const { serviceId } = input
 
   try {
+    // Convert serviceId string to number
+    const serviceIdNum = parseInt(serviceId, 10)
+    if (isNaN(serviceIdNum)) {
+      return {
+        output: {
+          success: false,
+          message: 'Invalid serviceId',
+        },
+      }
+    }
+
     // Fetch the service
     const service = await payload.findByID({
       collection: 'services',
-      id: serviceId,
+      id: serviceIdNum,
     }) as Service
 
     // Check if monitoring is enabled
@@ -86,7 +97,7 @@ export async function checkServiceHealthHandler({ input, req }: TaskHandlerArgs)
 
     await payload.update({
       collection: 'services',
-      id: serviceId,
+      id: serviceIdNum,
       data: updateData,
     })
 

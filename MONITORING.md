@@ -178,6 +178,11 @@ Shorter intervals provide faster detection but generate more load on your servic
 - **204**: No content (common for HEAD requests)
 - **Other**: Match your specific health check endpoint's status code
 
+**Note**: The monitoring system does not follow HTTP redirects (3xx responses). If your health check endpoint returns a redirect, either:
+- Configure the endpoint to return 200 directly
+- Set the monitor URL to the final destination
+- Adjust your endpoint to return a non-redirect status code
+
 ## Example Setup
 
 ### Setup for a Web API

@@ -48,7 +48,7 @@ export async function scheduleMonitoringChecksHandler({ req }: TaskHandlerArgs) 
         await payload.jobs.queue({
           task: 'checkServiceHealth',
           input: {
-            serviceId: service.id as any, // Cast to satisfy type constraints
+            serviceId: String(service.id), // Convert number to string for job input
           },
         })
 
