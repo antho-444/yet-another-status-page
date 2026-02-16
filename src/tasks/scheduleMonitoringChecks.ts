@@ -32,8 +32,27 @@ export async function scheduleMonitoringChecksHandler({ req }: TaskHandlerArgs) 
 
     // Queue health check tasks for services that need checking
     for (const service of services.docs as Service[]) {
-      if (!service.monitoring?.url) {
-        tasksSkipped.push(`${service.name}: No URL configured`)
+      // Validate configuration based on monitoring type
+      const monitoringType = service.monitoring?.type || 'http'
+      let hasValidConfig = false
+
+      if (monitoringType === 'http') {
+        hasValidConfig = !!service.monitoring?.url
+      } else if (monitoringType === 'tcp') {
+        hasValidConfig = !!(service.monitoring?.host && service.monitoring?.port)
+      } else if (monitoringType === 'ping') {
+        hasValidConfig = !!service.monitoring?.host
+      } else if (monitoringType === 'gamedig') {
+        hasValidConfig = !!(service.monitoring?.host && service.monitoring?.gameType)
+      }
+
+      if (!hasValidConfig) {
+        tasksSkipped.push(`${service.name}: Invalid ${monitoringType} configuration`)
+        continue
+      }
+
+      if (!service.monitoring) {
+        tasksSkipped.push(`${service.name}: No monitoring configuration`)
         continue
       }
 

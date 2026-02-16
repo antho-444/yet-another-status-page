@@ -95,12 +95,28 @@ export const Services: CollectionConfig = {
           },
         },
         {
+          name: 'type',
+          type: 'select',
+          label: 'Monitoring Type',
+          defaultValue: 'http',
+          options: [
+            { label: 'HTTP/HTTPS', value: 'http' },
+            { label: 'TCP Port', value: 'tcp' },
+            { label: 'Ping (ICMP)', value: 'ping' },
+            { label: 'Game Server (GameDig)', value: 'gamedig' },
+          ],
+          admin: {
+            description: 'Type of monitoring to perform',
+            condition: (data, siblingData) => siblingData?.enabled === true,
+          },
+        },
+        {
           name: 'url',
           type: 'text',
           label: 'Monitor URL',
           admin: {
             description: 'The URL to monitor (e.g., https://api.example.com/health)',
-            condition: (data, siblingData) => siblingData?.enabled === true,
+            condition: (data, siblingData) => siblingData?.enabled === true && siblingData?.type === 'http',
           },
         },
         {
@@ -115,7 +131,44 @@ export const Services: CollectionConfig = {
           ],
           admin: {
             description: 'HTTP method to use for the health check',
-            condition: (data, siblingData) => siblingData?.enabled === true,
+            condition: (data, siblingData) => siblingData?.enabled === true && siblingData?.type === 'http',
+          },
+        },
+        {
+          name: 'host',
+          type: 'text',
+          label: 'Hostname or IP',
+          admin: {
+            description: 'Hostname or IP address to monitor (e.g., example.com or 192.168.1.1)',
+            condition: (data, siblingData) => siblingData?.enabled === true && ['tcp', 'ping', 'gamedig'].includes(siblingData?.type),
+          },
+        },
+        {
+          name: 'port',
+          type: 'number',
+          label: 'Port Number',
+          admin: {
+            description: 'Port number to check (e.g., 22 for SSH, 3306 for MySQL)',
+            condition: (data, siblingData) => siblingData?.enabled === true && ['tcp', 'gamedig'].includes(siblingData?.type),
+          },
+        },
+        {
+          name: 'gameType',
+          type: 'select',
+          label: 'Game Type',
+          options: [
+            { label: 'Minecraft', value: 'minecraft' },
+            { label: 'Counter-Strike', value: 'cs' },
+            { label: 'Team Fortress 2', value: 'tf2' },
+            { label: 'Garry\'s Mod', value: 'garrysmod' },
+            { label: 'ARK: Survival Evolved', value: 'arkse' },
+            { label: 'Rust', value: 'rust' },
+            { label: '7 Days to Die', value: '7d2d' },
+            { label: 'Valheim', value: 'valheim' },
+          ],
+          admin: {
+            description: 'Type of game server',
+            condition: (data, siblingData) => siblingData?.enabled === true && siblingData?.type === 'gamedig',
           },
         },
         {
@@ -149,7 +202,7 @@ export const Services: CollectionConfig = {
           defaultValue: 200,
           admin: {
             description: 'The expected HTTP status code for a healthy response (default: 200)',
-            condition: (data, siblingData) => siblingData?.enabled === true,
+            condition: (data, siblingData) => siblingData?.enabled === true && siblingData?.type === 'http',
           },
         },
         {
