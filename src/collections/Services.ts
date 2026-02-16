@@ -20,6 +20,37 @@ export const Services: CollectionConfig = {
   },
   orderable: true,
   access: standardAccess,
+  hooks: {
+    afterChange: [
+      async ({ doc, req, operation }) => {
+        // Only run health check on update (not create) and if monitoring is enabled
+        if (operation === 'update' && doc.monitoring?.enabled) {
+          console.log(`[Services Hook] Service "${doc.name}" saved with monitoring enabled`)
+          console.log(`[Services Hook] Triggering immediate health check...`)
+          
+          try {
+            // Queue the health check task
+            await req.payload.jobs.queue({
+              task: 'checkServiceHealth',
+              input: {
+                serviceId: String(doc.id),
+              },
+            })
+
+            // Run the job immediately
+            await req.payload.jobs.run()
+
+            console.log(`[Services Hook] Health check completed for service "${doc.name}"`)
+          } catch (error: any) {
+            console.error(`[Services Hook] Failed to run health check:`, error.message)
+          }
+        } else if (operation === 'create' && doc.monitoring?.enabled) {
+          console.log(`[Services Hook] Service "${doc.name}" created with monitoring enabled`)
+          console.log(`[Services Hook] Health check will run on next scheduled interval`)
+        }
+      },
+    ],
+  },
   fields: [
     {
       name: 'name',
