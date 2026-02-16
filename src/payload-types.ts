@@ -986,6 +986,22 @@ export interface Setting {
    */
   logoDark?: (number | null) | Media;
   /**
+   * Enable automatic health checks for services (requires application restart to take effect)
+   */
+  monitoringEnabled?: boolean | null;
+  /**
+   * How often to run health checks
+   */
+  monitoringScheduleType?: ('minutes' | 'hours' | 'days' | 'weeks') | null;
+  /**
+   * Number of minutes/hours/days/weeks between checks
+   */
+  monitoringScheduleInterval?: number | null;
+  /**
+   * Current cron schedule (auto-generated from interval settings). You can manually override this for advanced scheduling.
+   */
+  monitoringScheduleCron?: string | null;
+  /**
    * Force display of maintenance banner regardless of service status
    */
   maintenanceModeEnabled?: boolean | null;
@@ -1109,6 +1125,10 @@ export interface SettingsSelect<T extends boolean = true> {
   favicon?: T;
   logoLight?: T;
   logoDark?: T;
+  monitoringEnabled?: T;
+  monitoringScheduleType?: T;
+  monitoringScheduleInterval?: T;
+  monitoringScheduleCron?: T;
   maintenanceModeEnabled?: T;
   customStatusMessage?: T;
   updatedAt?: T;

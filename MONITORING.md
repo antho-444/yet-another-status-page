@@ -134,18 +134,32 @@ By default, the monitoring system automatically checks all enabled services **ev
 
 #### Configuration
 
-Control the scheduler with environment variables:
+**Admin Panel Configuration (Recommended):**
+
+1. Go to **Admin Panel** → **Globals** → **Site Settings**
+2. Expand **Monitoring Schedule** section
+3. Configure monitoring:
+   - **Enable Automatic Monitoring**: Check to enable
+   - **Check Frequency**: Select Minutes/Hours/Days/Weeks
+   - **Interval**: Set how many minutes/hours/days/weeks between checks
+   - **Cron Expression**: Auto-generated, but can be manually edited for advanced schedules
+
+**Examples:**
+- Check every 1 minute: Frequency=Minutes, Interval=1
+- Check every 5 minutes: Frequency=Minutes, Interval=5
+- Check every 1 hour: Frequency=Hours, Interval=1
+- Check every 6 hours: Frequency=Hours, Interval=6
+- Check every 1 day: Frequency=Days, Interval=1
+
+**Environment Variables (Alternative):**
+
+You can also control the scheduler with environment variables (settings from admin panel take precedence):
 
 ```bash
 # Enable/disable automatic monitoring (default: enabled)
 ENABLE_AUTO_MONITORING=true
 
 # Set the schedule using cron syntax (default: every minute)
-# Examples:
-# - Every minute: * * * * *
-# - Every 5 minutes: */5 * * * *
-# - Every hour: 0 * * * *
-# - Every 30 seconds is not supported by cron syntax
 MONITORING_SCHEDULE="* * * * *"
 ```
 
@@ -168,9 +182,11 @@ MONITORING_SCHEDULE="* * * * *"
 - `0 * * * *` - Every hour
 - `0 */6 * * *` - Every 6 hours
 
+**Note:** Changes to monitoring schedule require an application restart to take effect.
+
 #### Disable Automatic Monitoring
 
-To disable automatic monitoring and use manual/external triggering:
+To disable automatic monitoring, uncheck "Enable Automatic Monitoring" in the admin panel or use:
 
 ```bash
 ENABLE_AUTO_MONITORING=false

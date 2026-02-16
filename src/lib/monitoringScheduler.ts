@@ -8,27 +8,61 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 
 let monitoringTask: ScheduledTask | null = null
+let currentSchedule: string = '* * * * *'
+
+/**
+ * Get schedule from database settings or environment variable
+ */
+async function getScheduleFromSettings(): Promise<{ enabled: boolean; schedule: string }> {
+  try {
+    const payload = await getPayload({ config })
+    const settings = await payload.findGlobal({ slug: 'settings' })
+    
+    if (settings) {
+      const enabled = settings.monitoringEnabled !== false // Default to true if undefined
+      const schedule = settings.monitoringScheduleCron || '* * * * *'
+      return { enabled, schedule }
+    }
+  } catch (error) {
+    console.log('[Monitoring Scheduler] Could not load settings from database, using defaults')
+  }
+  
+  // Fallback to environment variables
+  const enabled = process.env.ENABLE_AUTO_MONITORING !== 'false'
+  const schedule = process.env.MONITORING_SCHEDULE || '* * * * *'
+  return { enabled, schedule }
+}
 
 /**
  * Start the automatic monitoring scheduler
- * @param schedule Cron schedule (default: every minute)
+ * @param schedule Cron schedule (optional, will be read from settings if not provided)
  */
-export async function startMonitoringScheduler(schedule: string = '* * * * *') {
+export async function startMonitoringScheduler(schedule?: string) {
   if (monitoringTask) {
     console.log('[Monitoring Scheduler] Already running')
     return
   }
 
-  // Validate cron schedule
-  if (!cron.validate(schedule)) {
-    console.error(`[Monitoring Scheduler] Invalid cron schedule: ${schedule}`)
-    throw new Error(`Invalid cron schedule: ${schedule}`)
+  // Get schedule from settings or use provided/default
+  const { enabled, schedule: dbSchedule } = await getScheduleFromSettings()
+  const finalSchedule = schedule || dbSchedule
+  
+  if (!enabled) {
+    console.log('[Monitoring Scheduler] Monitoring disabled in settings')
+    return
   }
 
-  console.log('[Monitoring Scheduler] Starting automatic monitoring scheduler')
-  console.log(`[Monitoring Scheduler] Schedule: ${schedule}`)
+  // Validate cron schedule
+  if (!cron.validate(finalSchedule)) {
+    console.error(`[Monitoring Scheduler] Invalid cron schedule: ${finalSchedule}`)
+    throw new Error(`Invalid cron schedule: ${finalSchedule}`)
+  }
 
-  monitoringTask = cron.schedule(schedule, async () => {
+  currentSchedule = finalSchedule
+  console.log('[Monitoring Scheduler] Starting automatic monitoring scheduler')
+  console.log(`[Monitoring Scheduler] Schedule: ${currentSchedule}`)
+
+  monitoringTask = cron.schedule(currentSchedule, async () => {
     console.log(`\n[Monitoring Scheduler] ========================================`)
     console.log(`[Monitoring Scheduler] Triggering scheduled monitoring checks`)
     console.log(`[Monitoring Scheduler] Time: ${new Date().toISOString()}`)
@@ -70,10 +104,21 @@ export function stopMonitoringScheduler() {
 }
 
 /**
+ * Restart the monitoring scheduler with new schedule
+ * Useful when settings are changed
+ */
+export async function restartMonitoringScheduler() {
+  console.log('[Monitoring Scheduler] Restarting scheduler...')
+  stopMonitoringScheduler()
+  await startMonitoringScheduler()
+}
+
+/**
  * Get the monitoring scheduler status
  */
-export function getSchedulerStatus(): { running: boolean; schedule?: string } {
+export function getSchedulerStatus(): { running: boolean; schedule: string } {
   return {
     running: monitoringTask !== null,
+    schedule: currentSchedule,
   }
 }
