@@ -70,12 +70,12 @@ Use a service like Uptime Robot, Better Uptime, or similar to:
 GET /api/monitoring/check
 ```
 
-This endpoint schedules health checks for all services that are due to be checked based on their configured intervals.
+This endpoint executes health checks for all services that are due to be checked based on their configured intervals. The health checks run immediately and service statuses are updated before the endpoint returns.
 
 **Response:**
 ```json
 {
-  "message": "Monitoring checks scheduled successfully",
+  "message": "Monitoring checks completed",
   "jobId": "clx123456"
 }
 ```
@@ -91,12 +91,12 @@ Content-Type: application/json
 }
 ```
 
-This endpoint immediately queues a health check for a specific service.
+This endpoint immediately executes a health check for a specific service. The health check runs and the service status is updated before the endpoint returns.
 
 **Response:**
 ```json
 {
-  "message": "Health check queued successfully",
+  "message": "Health check completed",
   "serviceId": 123,
   "serviceName": "API Gateway"
 }
@@ -125,14 +125,19 @@ The service status is automatically updated based on consecutive failures:
 
 The threshold is configurable per service (default: 3).
 
-### 3. Background Jobs
+### 3. Job Execution
 
 The monitoring system uses Payload CMS's built-in job queue:
 
-- **scheduleMonitoringChecks**: Scheduled task that determines which services need checking
+- **scheduleMonitoringChecks**: Task that determines which services need checking based on their intervals
 - **checkServiceHealth**: Individual health check task for a specific service
 
-Jobs are processed in the background and can be monitored in the Admin Panel under Jobs.
+When you call the monitoring API endpoints, jobs are queued and **executed immediately** before the API returns. This ensures:
+- Health checks run synchronously when triggered via API
+- Service statuses are updated in real-time
+- You can verify results immediately after calling the endpoint
+
+**Note:** The API endpoints include `await payload.jobs.run()` which processes all queued jobs before returning the response.
 
 ## Monitoring Fields
 
