@@ -15,20 +15,59 @@ export async function scheduleMonitoringChecksHandler({ req }: TaskHandlerArgs) 
   const { payload } = req
 
   try {
-    // Find all services with monitoring enabled
-    const services = await payload.find({
-      collection: 'services',
-      where: {
-        'monitoring.enabled': {
-          equals: true,
+    // Find all services with monitoring enabled, excluding those in maintenance status
+    // Services under maintenance should not be automatically monitored since they are
+    // intentionally offline or undergoing maintenance work
+    // Execute both queries in parallel for better performance
+    const [services, maintenanceServicesResult] = await Promise.all([
+      payload.find({
+        collection: 'services',
+        where: {
+          and: [
+            {
+              'monitoring.enabled': {
+                equals: true,
+              },
+            },
+            {
+              status: {
+                not_equals: 'maintenance',
+              },
+            },
+          ],
         },
-      },
-      limit: 1000, // Reasonable limit for services
-    })
+        limit: 1000, // Reasonable limit for services
+      }),
+      // Count services with monitoring enabled that are in maintenance status
+      payload.find({
+        collection: 'services',
+        where: {
+          and: [
+            {
+              'monitoring.enabled': {
+                equals: true,
+              },
+            },
+            {
+              status: {
+                equals: 'maintenance',
+              },
+            },
+          ],
+        },
+        limit: 1000,
+      }),
+    ])
 
     const now = Date.now()
     const tasksQueued: string[] = []
     const tasksSkipped: string[] = []
+    const maintenanceServiceNames: string[] = []
+
+    // Track maintenance service names for logging
+    for (const service of maintenanceServicesResult.docs as Service[]) {
+      maintenanceServiceNames.push(service.name)
+    }
 
     // Queue health check tasks for services that need checking
     for (const service of services.docs as Service[]) {
@@ -81,10 +120,12 @@ export async function scheduleMonitoringChecksHandler({ req }: TaskHandlerArgs) 
       output: {
         success: true,
         totalServices: services.docs.length,
+        maintenanceServices: maintenanceServiceNames.length,
         tasksQueued: tasksQueued.length,
         tasksSkipped: tasksSkipped.length,
         queuedServices: tasksQueued,
         skippedServices: tasksSkipped,
+        maintenanceServicesList: maintenanceServiceNames,
       },
     }
   } catch (error: any) {
