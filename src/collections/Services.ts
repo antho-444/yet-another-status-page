@@ -24,7 +24,14 @@ export const Services: CollectionConfig = {
     afterChange: [
       async ({ doc, req, operation }) => {
         // Only queue health check on update (not create) and if monitoring is enabled
+        // Skip health checks for services in maintenance status since they are intentionally offline
         if (operation === 'update' && doc.monitoring?.enabled) {
+          if (doc.status === 'maintenance') {
+            console.log(`[Services Hook] Service "${doc.name}" saved with maintenance status`)
+            console.log(`[Services Hook] Skipping health check - service is under maintenance`)
+            return
+          }
+
           console.log(`[Services Hook] Service "${doc.name}" saved with monitoring enabled`)
           console.log(`[Services Hook] Queuing health check job...`)
           
