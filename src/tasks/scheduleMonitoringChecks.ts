@@ -15,13 +15,24 @@ export async function scheduleMonitoringChecksHandler({ req }: TaskHandlerArgs) 
   const { payload } = req
 
   try {
-    // Find all services with monitoring enabled
+    // Find all services with monitoring enabled, excluding those in maintenance status
+    // Services under maintenance should not be automatically monitored since they are
+    // intentionally offline or undergoing maintenance work
     const services = await payload.find({
       collection: 'services',
       where: {
-        'monitoring.enabled': {
-          equals: true,
-        },
+        and: [
+          {
+            'monitoring.enabled': {
+              equals: true,
+            },
+          },
+          {
+            status: {
+              not_equals: 'maintenance',
+            },
+          },
+        ],
       },
       limit: 1000, // Reasonable limit for services
     })
@@ -29,6 +40,7 @@ export async function scheduleMonitoringChecksHandler({ req }: TaskHandlerArgs) 
     const now = Date.now()
     const tasksQueued: string[] = []
     const tasksSkipped: string[] = []
+    const maintenanceServices: string[] = []
 
     // Queue health check tasks for services that need checking
     for (const service of services.docs as Service[]) {
@@ -77,14 +89,41 @@ export async function scheduleMonitoringChecksHandler({ req }: TaskHandlerArgs) 
       }
     }
 
+    // Count how many services with monitoring enabled are in maintenance status
+    const maintenanceServicesResult = await payload.find({
+      collection: 'services',
+      where: {
+        and: [
+          {
+            'monitoring.enabled': {
+              equals: true,
+            },
+          },
+          {
+            status: {
+              equals: 'maintenance',
+            },
+          },
+        ],
+      },
+      limit: 1000,
+    })
+
+    // Track maintenance service names for logging
+    for (const service of maintenanceServicesResult.docs as Service[]) {
+      maintenanceServices.push(service.name)
+    }
+
     return {
       output: {
         success: true,
         totalServices: services.docs.length,
+        maintenanceServices: maintenanceServices.length,
         tasksQueued: tasksQueued.length,
         tasksSkipped: tasksSkipped.length,
         queuedServices: tasksQueued,
         skippedServices: tasksSkipped,
+        maintenanceServicesList: maintenanceServices,
       },
     }
   } catch (error: any) {
