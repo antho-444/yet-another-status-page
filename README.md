@@ -25,7 +25,7 @@ A modern, self-hosted status page built with [Payload CMS](https://payloadcms.co
 
 ```bash
 # Clone the repository
-git clone https://github.com/Hostzero-GmbH/yet-another-status-page.git
+git clone https://github.com/antho-444/yet-another-status-page.git
 cd yet-another-status-page
 
 # Start the services
