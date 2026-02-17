@@ -31,9 +31,14 @@ import { EmailSettings, Settings, SmsSettings } from '@/globals'
 
 // Tasks
 import { sendNotificationFromCollectionHandler } from '@/tasks/sendNotificationFromCollection'
+import { checkServiceHealthHandler } from '@/tasks/checkServiceHealth'
+import { scheduleMonitoringChecksHandler } from '@/tasks/scheduleMonitoringChecks'
 
 // Migrations
 import { migrations } from '@/migrations'
+
+// Monitoring Scheduler
+import { startMonitoringScheduler } from '@/lib/monitoringScheduler'
 
 // Optional OIDC/SSO
 import { getOIDCPlugin, isOIDCPartiallyConfigured } from '@/lib/oidc'
@@ -131,7 +136,39 @@ export default buildConfig({
         ],
         retries: 3,
       },
+      {
+        slug: 'checkServiceHealth',
+        handler: checkServiceHealthHandler as any,
+        inputSchema: [
+          { name: 'serviceId', type: 'text', required: true }, // Must be text, converted to number in handler
+        ],
+        retries: 2,
+      },
+      {
+        slug: 'scheduleMonitoringChecks',
+        handler: scheduleMonitoringChecksHandler as any,
+        inputSchema: [],
+        retries: 1,
+      },
     ],
+  },
+  onInit: async (payload) => {
+    // Start automatic monitoring scheduler
+    const monitoringSchedule = process.env.MONITORING_SCHEDULE || '* * * * *' // Default: every minute
+    const enableAutoMonitoring = process.env.ENABLE_AUTO_MONITORING !== 'false' // Default: enabled
+    
+    if (enableAutoMonitoring) {
+      console.log('[Payload] Initializing automatic monitoring scheduler...')
+      try {
+        // Pass payload instance to avoid circular dependency
+        await startMonitoringScheduler(monitoringSchedule, payload)
+        console.log('[Payload] Automatic monitoring scheduler initialized')
+      } catch (error: any) {
+        console.error('[Payload] Failed to start monitoring scheduler:', error.message)
+      }
+    } else {
+      console.log('[Payload] Automatic monitoring scheduler disabled (ENABLE_AUTO_MONITORING=false)')
+    }
   },
   serverURL: getServerUrl(),
 })

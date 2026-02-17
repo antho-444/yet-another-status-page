@@ -9,6 +9,63 @@ export const Settings: GlobalConfig = {
   access: {
     read: () => true,
   },
+  hooks: {
+    beforeChange: [
+      async ({ data }) => {
+        // Auto-generate cron expression from user-friendly inputs
+        if (data.monitoringEnabled && data.monitoringScheduleType && data.monitoringScheduleInterval) {
+          const interval = data.monitoringScheduleInterval
+          const type = data.monitoringScheduleType
+
+          let cronExpression = ''
+          
+          switch (type) {
+            case 'minutes':
+              if (interval === 1) {
+                cronExpression = '* * * * *' // Every minute
+              } else if (interval <= 30) {
+                cronExpression = `*/${interval} * * * *` // Every N minutes
+              } else {
+                cronExpression = `0 * * * *` // Fall back to hourly if > 30 minutes
+              }
+              break
+            case 'hours':
+              if (interval === 1) {
+                cronExpression = '0 * * * *' // Every hour
+              } else if (interval <= 23) {
+                cronExpression = `0 */${interval} * * *` // Every N hours
+              } else {
+                cronExpression = '0 0 * * *' // Fall back to daily if >= 24 hours
+              }
+              break
+            case 'days':
+              if (interval === 1) {
+                cronExpression = '0 0 * * *' // Every day at midnight
+              } else if (interval <= 30) {
+                cronExpression = `0 0 */${interval} * *` // Every N days
+              } else {
+                cronExpression = '0 0 1 * *' // Fall back to monthly
+              }
+              break
+            case 'weeks':
+              if (interval === 1) {
+                cronExpression = '0 0 * * 0' // Every Sunday at midnight
+              } else {
+                cronExpression = '0 0 * * 0' // Weekly on Sunday
+              }
+              break
+          }
+
+          // Only update if not manually overridden or empty
+          if (!data.monitoringScheduleCron || data.monitoringScheduleCron.trim() === '') {
+            data.monitoringScheduleCron = cronExpression
+          }
+        }
+
+        return data
+      },
+    ],
+  },
   fields: [
     // General Settings
     {
@@ -121,6 +178,63 @@ export const Settings: GlobalConfig = {
           label: 'Logo (Dark Theme)',
           admin: {
             description: 'Logo to display on dark backgrounds (recommended: SVG or PNG with transparent background)',
+          },
+        },
+      ],
+    },
+    // Monitoring Settings
+    {
+      type: 'collapsible',
+      label: 'Monitoring Schedule',
+      admin: {
+        initCollapsed: true,
+      },
+      fields: [
+        {
+          name: 'monitoringEnabled',
+          type: 'checkbox',
+          defaultValue: true,
+          label: 'Enable Automatic Monitoring',
+          admin: {
+            description: 'Enable automatic health checks for services (requires application restart to take effect)',
+          },
+        },
+        {
+          name: 'monitoringScheduleType',
+          type: 'select',
+          label: 'Check Frequency',
+          defaultValue: 'minutes',
+          options: [
+            { label: 'Minutes', value: 'minutes' },
+            { label: 'Hours', value: 'hours' },
+            { label: 'Days', value: 'days' },
+            { label: 'Weeks', value: 'weeks' },
+          ],
+          admin: {
+            description: 'How often to run health checks',
+            condition: (data) => data?.monitoringEnabled !== false,
+          },
+        },
+        {
+          name: 'monitoringScheduleInterval',
+          type: 'number',
+          label: 'Interval',
+          defaultValue: 1,
+          min: 1,
+          max: 60,
+          admin: {
+            description: 'Number of minutes/hours/days/weeks between checks',
+            condition: (data) => data?.monitoringEnabled !== false,
+          },
+        },
+        {
+          name: 'monitoringScheduleCron',
+          type: 'text',
+          label: 'Cron Expression (Advanced)',
+          admin: {
+            description: 'Current cron schedule (auto-generated from interval settings). You can manually override this for advanced scheduling.',
+            readOnly: false,
+            condition: (data) => data?.monitoringEnabled !== false,
           },
         },
       ],

@@ -116,6 +116,8 @@ export interface Config {
   jobs: {
     tasks: {
       sendNotificationFromCollection: TaskSendNotificationFromCollection;
+      checkServiceHealth: TaskCheckServiceHealth;
+      scheduleMonitoringChecks: TaskScheduleMonitoringChecks;
       inline: {
         input: unknown;
         output: unknown;
@@ -185,6 +187,67 @@ export interface Service {
    * Current status of the service
    */
   status: 'operational' | 'degraded' | 'partial' | 'major' | 'maintenance';
+  /**
+   * Configure automatic monitoring for this service
+   */
+  monitoring?: {
+    /**
+     * When enabled, the service will be automatically checked at the specified interval
+     */
+    enabled?: boolean | null;
+    /**
+     * Type of monitoring to perform
+     */
+    type?: ('http' | 'tcp' | 'ping' | 'gamedig') | null;
+    /**
+     * The URL to monitor (e.g., https://api.example.com/health)
+     */
+    url?: string | null;
+    /**
+     * HTTP method to use for the health check
+     */
+    method?: ('GET' | 'HEAD' | 'POST') | null;
+    /**
+     * Hostname or IP address to monitor (e.g., example.com or 192.168.1.1)
+     */
+    host?: string | null;
+    /**
+     * Port number to check (e.g., 22 for SSH, 3306 for MySQL)
+     */
+    port?: number | null;
+    /**
+     * Type of game server
+     */
+    gameType?: ('minecraft' | 'cs' | 'tf2' | 'garrysmod' | 'arkse' | 'rust' | '7d2d' | 'valheim') | null;
+    /**
+     * How often to check the service (minimum 30 seconds)
+     */
+    interval?: number | null;
+    /**
+     * Request timeout in seconds
+     */
+    timeout?: number | null;
+    /**
+     * The expected HTTP status code for a healthy response (default: 200)
+     */
+    expectedStatusCode?: number | null;
+    /**
+     * Timestamp of the last monitoring check
+     */
+    lastCheckedAt?: string | null;
+    /**
+     * Result of the last monitoring check
+     */
+    lastCheckStatus?: ('success' | 'failed' | 'pending') | null;
+    /**
+     * Number of consecutive failed checks
+     */
+    consecutiveFailures?: number | null;
+    /**
+     * Number of consecutive failures before marking service as down
+     */
+    failureThreshold?: number | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -508,7 +571,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'sendNotificationFromCollection';
+        taskSlug: 'inline' | 'sendNotificationFromCollection' | 'checkServiceHealth' | 'scheduleMonitoringChecks';
         taskID: string;
         input?:
           | {
@@ -541,7 +604,7 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'sendNotificationFromCollection') | null;
+  taskSlug?: ('inline' | 'sendNotificationFromCollection' | 'checkServiceHealth' | 'scheduleMonitoringChecks') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -652,6 +715,24 @@ export interface ServicesSelect<T extends boolean = true> {
   description?: T;
   group?: T;
   status?: T;
+  monitoring?:
+    | T
+    | {
+        enabled?: T;
+        type?: T;
+        url?: T;
+        method?: T;
+        host?: T;
+        port?: T;
+        gameType?: T;
+        interval?: T;
+        timeout?: T;
+        expectedStatusCode?: T;
+        lastCheckedAt?: T;
+        lastCheckStatus?: T;
+        consecutiveFailures?: T;
+        failureThreshold?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -905,6 +986,22 @@ export interface Setting {
    */
   logoDark?: (number | null) | Media;
   /**
+   * Enable automatic health checks for services (requires application restart to take effect)
+   */
+  monitoringEnabled?: boolean | null;
+  /**
+   * How often to run health checks
+   */
+  monitoringScheduleType?: ('minutes' | 'hours' | 'days' | 'weeks') | null;
+  /**
+   * Number of minutes/hours/days/weeks between checks
+   */
+  monitoringScheduleInterval?: number | null;
+  /**
+   * Current cron schedule (auto-generated from interval settings). You can manually override this for advanced scheduling.
+   */
+  monitoringScheduleCron?: string | null;
+  /**
    * Force display of maintenance banner regardless of service status
    */
   maintenanceModeEnabled?: boolean | null;
@@ -1028,6 +1125,10 @@ export interface SettingsSelect<T extends boolean = true> {
   favicon?: T;
   logoLight?: T;
   logoDark?: T;
+  monitoringEnabled?: T;
+  monitoringScheduleType?: T;
+  monitoringScheduleInterval?: T;
+  monitoringScheduleCron?: T;
   maintenanceModeEnabled?: T;
   customStatusMessage?: T;
   updatedAt?: T;
@@ -1086,6 +1187,24 @@ export interface TaskSendNotificationFromCollection {
     itemTitle: string;
     itemUrl: string;
   };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCheckServiceHealth".
+ */
+export interface TaskCheckServiceHealth {
+  input: {
+    serviceId: string;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskScheduleMonitoringChecks".
+ */
+export interface TaskScheduleMonitoringChecks {
+  input?: unknown;
   output?: unknown;
 }
 /**
